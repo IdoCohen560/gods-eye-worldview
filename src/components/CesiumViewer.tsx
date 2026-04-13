@@ -123,24 +123,29 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
-    // Keyboard zoom: + to zoom in, - to zoom out
-    const handleKeyZoom = (e: KeyboardEvent) => {
+    // Keyboard controls: WASD movement, +/- zoom
+    const handleKeyControls = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
       const camera = viewer.camera;
       const alt = camera.positionCartographic.height;
-      if (e.key === '=' || e.key === '+') {
-        camera.zoomIn(alt * 0.3);
-      } else if (e.key === '-' || e.key === '_') {
-        camera.zoomOut(alt * 0.3);
+      const moveAmount = alt * 0.0003; // proportional to altitude
+
+      switch (e.key) {
+        case '=': case '+': camera.zoomIn(alt * 0.3); break;
+        case '-': case '_': camera.zoomOut(alt * 0.3); break;
+        case 'w': case 'W': camera.moveUp(moveAmount); break;
+        case 's': case 'S': camera.moveDown(moveAmount); break;
+        case 'a': case 'A': camera.moveLeft(moveAmount); break;
+        case 'd': case 'D': camera.moveRight(moveAmount); break;
       }
     };
-    window.addEventListener('keydown', handleKeyZoom);
+    window.addEventListener('keydown', handleKeyControls);
 
     viewerRef.current = viewer;
     onReady(viewer);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyZoom);
+      window.removeEventListener('keydown', handleKeyControls);
       handler.destroy();
       viewer.destroy();
       viewerRef.current = null;
@@ -236,12 +241,22 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   // ======= SATELLITES (with orbit lines) =======
   useEffect(() => {
     const v = viewerRef.current;
-    if (!v || !activeLayers.satellites) {
-      satelliteRef.current.forEach(e => viewerRef.current?.entities.remove(e));
+
+    // Always clean up first
+    const cleanup = () => {
+      const viewer = viewerRef.current;
+      if (viewer && !viewer.isDestroyed()) {
+        satelliteRef.current.forEach(e => { try { viewer.entities.remove(e); } catch {} });
+        orbitRef.current.forEach(e => { try { viewer.entities.remove(e); } catch {} });
+      }
       satelliteRef.current.clear();
-      orbitRef.current.forEach(e => viewerRef.current?.entities.remove(e));
       orbitRef.current.clear();
-      if (!activeLayers.satellites) onFeedCountUpdate('satellites', 0);
+    };
+
+    cleanup();
+
+    if (!v || !activeLayers.satellites) {
+      onFeedCountUpdate('satellites', 0);
       return;
     }
 
@@ -265,7 +280,6 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
             sat.position.longitude, sat.position.latitude, sat.position.altitude * 1000
           );
 
-          // Satellite point
           const entity = v.entities.add({
             position: pos,
             point: {
@@ -291,7 +305,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
           });
           satelliteRef.current.set(sat.name, entity);
 
-          // Orbit path line (skip starlink for performance)
+          // Orbit path (skip starlink)
           if (sat.orbitPath.length > 2) {
             const pathPositions = sat.orbitPath.map(p =>
               Cesium.Cartesian3.fromDegrees(p.longitude, p.latitude, p.altitude * 1000)
@@ -317,7 +331,6 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
     init();
 
-    // Update satellite positions
     const interval = setInterval(() => {
       if (cancelled) return;
       const positions = propagateAll(satDataRef.current, new Date());
@@ -335,10 +348,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     return () => {
       cancelled = true;
       clearInterval(interval);
-      satelliteRef.current.forEach(e => v.entities.remove(e));
-      satelliteRef.current.clear();
-      orbitRef.current.forEach(e => v.entities.remove(e));
-      orbitRef.current.clear();
+      cleanup();
     };
   }, [activeLayers.satellites]);
 

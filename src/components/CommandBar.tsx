@@ -3,6 +3,10 @@ import * as Cesium from 'cesium';
 import { NOMINATIM_URL } from '../config/constants';
 import type { Viewer } from 'cesium';
 
+// Default view: whole globe from space
+const HOME_POSITION = Cesium.Cartesian3.fromDegrees(-40, 20, 20_000_000);
+const HOME_ORIENTATION = { heading: 0, pitch: -Cesium.Math.PI_OVER_TWO, roll: 0 };
+
 interface Props {
   viewer: Viewer | null;
 }
@@ -32,6 +36,15 @@ export default function CommandBar({ viewer }: Props) {
     }
   }, [viewer, query]);
 
+  const handleCenter = useCallback(() => {
+    if (!viewer) return;
+    viewer.camera.flyTo({
+      destination: HOME_POSITION,
+      orientation: HOME_ORIENTATION,
+      duration: 2,
+    });
+  }, [viewer]);
+
   return (
     <div className="command-bar">
       <span className="logo">GOD'S EYE</span>
@@ -45,6 +58,13 @@ export default function CommandBar({ viewer }: Props) {
           style={{ width: '100%' }}
         />
       </form>
+      <button
+        className="center-btn"
+        onClick={handleCenter}
+        title="Reset view to globe (Home)"
+      >
+        CENTER
+      </button>
     </div>
   );
 }

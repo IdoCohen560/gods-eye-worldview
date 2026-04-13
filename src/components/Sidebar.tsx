@@ -91,6 +91,7 @@ export default function Sidebar({ activeLayers, toggleLayer }: Props) {
       <h3>SHORTCUTS</h3>
       <div style={{ fontSize: 10, color: 'var(--text-dim)', padding: '0 8px', lineHeight: 1.8 }}>
         [1-8] Shader modes<br />
+        [W/A/S/D] Move around<br />
         [+] Zoom in  [-] Zoom out<br />
         Click entity for details<br />
         Click camera for live feed

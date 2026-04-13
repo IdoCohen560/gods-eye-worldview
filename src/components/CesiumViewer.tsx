@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Cesium from 'cesium';
-import { GOOGLE_MAPS_API_KEY, AIRCRAFT_POLL_INTERVAL, SATELLITE_UPDATE_INTERVAL, FIRMS_MAP_KEY, ACLED_EMAIL, ACLED_PASSWORD } from '../config/constants';
+import { GOOGLE_MAPS_API_KEY, AIRCRAFT_POLL_INTERVAL, SATELLITE_UPDATE_INTERVAL, FIRMS_MAP_KEY } from '../config/constants';
 import { applyShader, removeShader } from '../shaders/ShaderManager';
 import { fetchAircraft, type AircraftState } from '../feeds/AircraftFeed';
 import { fetchSatellites, propagateAll, type SatelliteRecord, type SatellitePosition } from '../feeds/SatelliteFeed';
@@ -128,20 +128,35 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
-    // Keyboard controls: WASD movement, +/- zoom
+    // Keyboard controls: WASD pan, +/- zoom
     const handleKeyControls = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement) return;
       const camera = viewer.camera;
       const alt = camera.positionCartographic.height;
-      const moveAmount = alt * 0.0003; // proportional to altitude
+      const lat = Cesium.Math.toDegrees(camera.positionCartographic.latitude);
+      const lon = Cesium.Math.toDegrees(camera.positionCartographic.longitude);
+      // Pan amount scales with altitude (bigger moves when zoomed out)
+      const panDeg = alt / 1_000_000; // roughly 1° per 1000km altitude
 
       switch (e.key) {
-        case '=': case '+': camera.zoomIn(alt * 0.3); break;
-        case '-': case '_': camera.zoomOut(alt * 0.3); break;
-        case 'w': case 'W': camera.moveUp(moveAmount); break;
-        case 's': case 'S': camera.moveDown(moveAmount); break;
-        case 'a': case 'A': camera.moveLeft(moveAmount); break;
-        case 'd': case 'D': camera.moveRight(moveAmount); break;
+        case '=': case '+':
+          camera.zoomIn(alt * 0.3);
+          break;
+        case '-': case '_':
+          camera.zoomOut(alt * 0.3);
+          break;
+        case 'w': case 'W':
+          camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(lon, Math.min(89, lat + panDeg), alt), duration: 0.3 });
+          break;
+        case 's': case 'S':
+          camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(lon, Math.max(-89, lat - panDeg), alt), duration: 0.3 });
+          break;
+        case 'a': case 'A':
+          camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(lon - panDeg, lat, alt), duration: 0.3 });
+          break;
+        case 'd': case 'D':
+          camera.flyTo({ destination: Cesium.Cartesian3.fromDegrees(lon + panDeg, lat, alt), duration: 0.3 });
+          break;
       }
     };
     window.addEventListener('keydown', handleKeyControls);
@@ -530,7 +545,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   // ======= CONFLICTS (ACLED) =======
   useEffect(() => {
     const v = viewerRef.current;
-    if (!v || !activeLayers.conflicts || !ACLED_EMAIL || !ACLED_PASSWORD) {
+    if (!v || !activeLayers.conflicts) {
       conflictRef.current.forEach(e => viewerRef.current?.entities.remove(e));
       conflictRef.current.clear();
       if (!activeLayers.conflicts) onFeedCountUpdate('conflicts', 0);
@@ -541,7 +556,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
     const load = async () => {
       try {
-        const events = await fetchConflicts(ACLED_EMAIL, ACLED_PASSWORD);
+        const events = await fetchConflicts();
         if (cancelled) return;
 
         for (const ev of events) {

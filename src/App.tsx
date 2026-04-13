@@ -33,7 +33,7 @@ export default function App() {
   const [viewState, setViewState] = useState<ViewState>({ lat: 0, lon: 0, alt: 10_000_000, heading: 0 });
   const [activeLayers, setActiveLayers] = useState<Record<string, boolean>>({
     aircraft: true,
-    satellites: true,
+    satellites: false,
     cctv: true,
     traffic: false,
     ships: false,

@@ -12,7 +12,7 @@ export const GIBS_LAYERS: GIBSLayerConfig[] = [
   {
     id: 'viirs-nightlights',
     name: 'VIIRS Night Lights',
-    layer: 'VIIRS_SNPP_DayNightBand_ENCC',
+    layer: 'VIIRS_SNPP_DayNightBand_AtSensor_M15',
     tileMatrixSetID: '500m',
     format: 'image/png',
     maxLevel: 8,

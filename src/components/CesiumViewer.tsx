@@ -68,17 +68,20 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
     const viewer = new Cesium.Viewer(containerRef.current, {
       terrain: Cesium.Terrain.fromWorldTerrain(),
-      timeline: true,
-      animation: true,
+      timeline: false,
+      animation: false,
       baseLayerPicker: false,
       geocoder: false,
       homeButton: false,
       navigationHelpButton: false,
-      sceneModePicker: true,
+      sceneModePicker: false,
       fullscreenButton: false,
       selectionIndicator: true,
       infoBox: false,
     });
+
+    // Stop the clock from advancing (prevents orbit animation artifacts)
+    viewer.clock.shouldAnimate = false;
 
     if (GOOGLE_MAPS_API_KEY) {
       Cesium.Cesium3DTileset.fromUrl(
@@ -120,10 +123,28 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
+    // Keyboard zoom: + to zoom in, - to zoom out
+    const handleKeyZoom = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return;
+      const camera = viewer.camera;
+      const alt = camera.positionCartographic.height;
+      if (e.key === '=' || e.key === '+') {
+        camera.zoomIn(alt * 0.3);
+      } else if (e.key === '-' || e.key === '_') {
+        camera.zoomOut(alt * 0.3);
+      }
+    };
+    window.addEventListener('keydown', handleKeyZoom);
+
     viewerRef.current = viewer;
     onReady(viewer);
 
-    return () => { handler.destroy(); viewer.destroy(); viewerRef.current = null; };
+    return () => {
+      window.removeEventListener('keydown', handleKeyZoom);
+      handler.destroy();
+      viewer.destroy();
+      viewerRef.current = null;
+    };
   }, []);
 
   // ======= SHADERS =======
@@ -157,7 +178,8 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
           lamax: Math.min(90, Cesium.Math.toDegrees(rect.north)),
           lomax: Math.min(180, Cesium.Math.toDegrees(rect.east)),
         };
-        if (bounds.lamax - bounds.lamin > 30) return;
+        // Skip if viewing entire globe (waste of API credits)
+        if (bounds.lamax - bounds.lamin > 90) return;
 
         const aircraft = await fetchAircraft(bounds);
         if (cancelled) return;
@@ -787,14 +809,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
         </div>
       )}
       {selectedCamera && (
-        <div className="video-panel">
-          <div className="video-header">
-            <span style={{ color: 'var(--accent-green)', fontSize: 11 }}>{selectedCamera.name}</span>
-            <button className="close-btn" onClick={() => setSelectedCamera(null)}>X</button>
-          </div>
-          <img src={selectedCamera.url} alt={selectedCamera.name} style={{ width: '100%' }}
-            onError={e => { (e.target as HTMLImageElement).alt = 'Feed unavailable'; }} />
-        </div>
+        <CameraPanel camera={selectedCamera} onClose={() => setSelectedCamera(null)} />
       )}
     </>
   );
@@ -817,6 +832,56 @@ function createAircraftIcon(color: Cesium.Color): HTMLCanvasElement {
   ctx.fillStyle = `rgba(${color.red*255},${color.green*255},${color.blue*255},1)`;
   ctx.beginPath(); ctx.moveTo(8,0); ctx.lineTo(14,12); ctx.lineTo(8,9); ctx.lineTo(2,12); ctx.closePath(); ctx.fill();
   return c;
+}
+
+// Auto-refreshing camera panel for JPEG feeds
+function CameraPanel({ camera, onClose }: { camera: Camera; onClose: () => void }) {
+  const [imgSrc, setImgSrc] = useState(camera.url);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(`${camera.url}?t=${Date.now()}`);
+    setError(false);
+    // Refresh every 5 seconds for JPEG feeds
+    const interval = setInterval(() => {
+      setImgSrc(`${camera.url}?t=${Date.now()}`);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [camera.url]);
+
+  return (
+    <div className="video-panel">
+      <div className="video-header">
+        <span style={{ color: 'var(--accent-green)', fontSize: 11 }}>
+          {camera.name} — {camera.city}
+        </span>
+        <button className="close-btn" onClick={onClose}>X</button>
+      </div>
+      {error ? (
+        <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-dim)', fontSize: 11 }}>
+          FEED UNAVAILABLE — CORS BLOCKED OR OFFLINE
+        </div>
+      ) : (
+        <img
+          src={imgSrc}
+          alt={camera.name}
+          style={{ width: '100%', display: 'block' }}
+          onError={() => setError(true)}
+        />
+      )}
+      <div style={{
+        padding: '4px 8px',
+        fontSize: 9,
+        color: 'var(--text-dim)',
+        borderTop: '1px solid var(--border)',
+        display: 'flex',
+        justifyContent: 'space-between',
+      }}>
+        <span>LIVE — REFRESH 5s</span>
+        <span>{camera.type.toUpperCase()}</span>
+      </div>
+    </div>
+  );
 }
 
 function createCameraIcon(): HTMLCanvasElement {

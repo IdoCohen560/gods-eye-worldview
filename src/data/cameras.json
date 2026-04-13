@@ -1,37 +1,7 @@
 [
   {
-    "id": "txdot-001",
-    "name": "I-35 @ Riverside Dr",
-    "lat": 30.2500,
-    "lon": -97.7400,
-    "type": "traffic",
-    "url": "https://its.txdot.gov/ITS_WEB/FrontEnd/snapshots/AUS-I35_Riverside.jpg",
-    "format": "jpeg-refresh",
-    "city": "Austin"
-  },
-  {
-    "id": "txdot-002",
-    "name": "I-35 @ 51st St",
-    "lat": 30.3100,
-    "lon": -97.7200,
-    "type": "traffic",
-    "url": "https://its.txdot.gov/ITS_WEB/FrontEnd/snapshots/AUS-I35_51st.jpg",
-    "format": "jpeg-refresh",
-    "city": "Austin"
-  },
-  {
-    "id": "txdot-003",
-    "name": "US 183 @ Burnet Rd",
-    "lat": 30.3700,
-    "lon": -97.7250,
-    "type": "traffic",
-    "url": "https://its.txdot.gov/ITS_WEB/FrontEnd/snapshots/AUS-US183_Burnet.jpg",
-    "format": "jpeg-refresh",
-    "city": "Austin"
-  },
-  {
-    "id": "nyc-001",
-    "name": "Times Square",
+    "id": "nyc-timessquare",
+    "name": "Times Square NYC",
     "lat": 40.7580,
     "lon": -73.9855,
     "type": "traffic",
@@ -40,8 +10,8 @@
     "city": "New York"
   },
   {
-    "id": "nyc-002",
-    "name": "FDR Drive @ 42nd St",
+    "id": "nyc-fdr42",
+    "name": "FDR Dr @ 42nd St",
     "lat": 40.7489,
     "lon": -73.9680,
     "type": "traffic",
@@ -50,53 +20,63 @@
     "city": "New York"
   },
   {
-    "id": "nyc-003",
-    "name": "Brooklyn Bridge",
-    "lat": 40.7061,
-    "lon": -73.9969,
+    "id": "nyc-lincoln",
+    "name": "Lincoln Tunnel",
+    "lat": 40.7623,
+    "lon": -74.0020,
     "type": "traffic",
-    "url": "https://webcams.nyctmc.org/api/cameras/f78a4b7e-b5e7-4db4-8534-43b0e8a1b5a1/image",
+    "url": "https://webcams.nyctmc.org/api/cameras/a09e2e8e-df48-481d-a53e-117ec3a6fdd0/image",
     "format": "jpeg-refresh",
     "city": "New York"
   },
   {
-    "id": "cal-001",
-    "name": "I-405 @ Wilshire Blvd",
-    "lat": 34.0326,
-    "lon": -118.4503,
+    "id": "jackson-hole",
+    "name": "Jackson Hole Town Square",
+    "lat": 43.4799,
+    "lon": -110.7624,
+    "type": "tourism",
+    "url": "https://www.seejh.com/webcams/townsquare/townsquare.jpg",
+    "format": "jpeg-refresh",
+    "city": "Jackson, WY"
+  },
+  {
+    "id": "abbey-road",
+    "name": "Abbey Road Crossing London",
+    "lat": 51.5320,
+    "lon": -0.1779,
+    "type": "tourism",
+    "url": "https://www.abbeyroad.com/crossing-cam/img/abbey-road-crossing.jpg",
+    "format": "jpeg-refresh",
+    "city": "London"
+  },
+  {
+    "id": "txdot-i35",
+    "name": "I-35 @ Riverside Austin",
+    "lat": 30.2500,
+    "lon": -97.7400,
     "type": "traffic",
-    "url": "https://cwwp2.dot.ca.gov/data/d7/cctv/image/i405-wilshire/i405-wilshire.jpg",
+    "url": "https://its.txdot.gov/ITS_WEB/FrontEnd/snapshots/AUS-Camera056.jpg",
+    "format": "jpeg-refresh",
+    "city": "Austin"
+  },
+  {
+    "id": "txdot-mopac",
+    "name": "MoPac @ 2222 Austin",
+    "lat": 30.3500,
+    "lon": -97.7800,
+    "type": "traffic",
+    "url": "https://its.txdot.gov/ITS_WEB/FrontEnd/snapshots/AUS-Camera022.jpg",
+    "format": "jpeg-refresh",
+    "city": "Austin"
+  },
+  {
+    "id": "caltrans-405",
+    "name": "I-405 @ LAX Los Angeles",
+    "lat": 33.9510,
+    "lon": -118.3880,
+    "type": "traffic",
+    "url": "https://cwwp2.dot.ca.gov/data/d7/cctv/image/i405-nb-century/i405-nb-century.jpg",
     "format": "jpeg-refresh",
     "city": "Los Angeles"
-  },
-  {
-    "id": "cal-002",
-    "name": "US 101 @ Hollywood Blvd",
-    "lat": 34.1017,
-    "lon": -118.3350,
-    "type": "traffic",
-    "url": "https://cwwp2.dot.ca.gov/data/d7/cctv/image/us101-hollywood/us101-hollywood.jpg",
-    "format": "jpeg-refresh",
-    "city": "Los Angeles"
-  },
-  {
-    "id": "chi-001",
-    "name": "I-90/94 @ Michigan Ave",
-    "lat": 41.8781,
-    "lon": -87.6298,
-    "type": "traffic",
-    "url": "https://www.travelmidwest.com/lmiga/cameras/Chicago/I90-94_Michigan.jpg",
-    "format": "jpeg-refresh",
-    "city": "Chicago"
-  },
-  {
-    "id": "dc-001",
-    "name": "Constitution Ave NW",
-    "lat": 38.8921,
-    "lon": -77.0147,
-    "type": "traffic",
-    "url": "https://www.mapquest.com/webcams/dc/constitution_ave.jpg",
-    "format": "jpeg-refresh",
-    "city": "Washington DC"
   }
 ]

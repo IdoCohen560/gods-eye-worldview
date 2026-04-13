@@ -10,16 +10,13 @@ export interface GIBSLayerConfig {
 }
 
 export function createGIBSLayer(config: GIBSLayerConfig): Cesium.WebMapTileServiceImageryProvider {
-  // Use yesterday's date (today's imagery may not be processed yet)
   const yesterday = new Date(Date.now() - 86_400_000);
   const dateStr = yesterday.toISOString().slice(0, 10);
-
-  // GIBS RESTful tile URL template (not KVP)
-  // Format: https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/{layer}/default/{date}/{tileMatrixSet}/{z}/{y}/{x}.{ext}
   const ext = config.format === 'image/jpeg' ? 'jpg' : 'png';
 
+  // GIBS RESTful URL — interpolate tileMatrixSetID directly (not a Cesium template var)
   return new Cesium.WebMapTileServiceImageryProvider({
-    url: `https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/${config.layer}/default/${dateStr}/{TileMatrixSet}/{TileMatrix}/{TileRow}/{TileCol}.${ext}`,
+    url: `https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/${config.layer}/default/${dateStr}/${config.tileMatrixSetID}/{TileMatrix}/{TileRow}/{TileCol}.${ext}`,
     layer: config.layer,
     tileMatrixSetID: config.tileMatrixSetID,
     format: config.format,

@@ -53,6 +53,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   const trafficAnimRef = useRef<number>(0);
   const gibsLayerRef = useRef<Cesium.ImageryLayer | null>(null);
   const gibsIndividualRef = useRef<Map<string, Cesium.ImageryLayer>>(new Map());
+  const google3dLoadedRef = useRef(false);
   const fireRef = useRef<Map<string, Cesium.Entity>>(new Map());
   const conflictRef = useRef<Map<string, Cesium.Entity>>(new Map());
   const shipRef = useRef<Map<string, Cesium.Entity>>(new Map());
@@ -96,6 +97,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       ).then(tileset => {
         viewer.scene.primitives.add(tileset);
         viewer.scene.globe.show = false;
+        google3dLoadedRef.current = true;
         console.log('✅ Google 3D Tiles loaded successfully');
       }).catch(e => {
         console.error('❌ Google 3D Tiles failed:', e);
@@ -550,7 +552,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     };
   }, [activeLayers.ships]);
 
-  // ======= CONFLICTS (ACLED) =======
+  // ======= CONFLICTS (GDELT) =======
   useEffect(() => {
     const v = viewerRef.current;
     if (!v || !activeLayers.conflicts) {
@@ -580,7 +582,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
             : isProtest ? Cesium.Color.YELLOW
             : Cesium.Color.fromCssColorString('#ff6666');
 
-          const size = Math.max(6, Math.min(16, 6 + ev.fatalities * 2));
+          const size = 8;
 
           const entity = v.entities.add({
             position: Cesium.Cartesian3.fromDegrees(ev.longitude, ev.latitude, 0),
@@ -591,8 +593,8 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
               outlineWidth: 2,
             },
             ellipse: {
-              semiMajorAxis: Math.max(5000, ev.fatalities * 3000),
-              semiMinorAxis: Math.max(5000, ev.fatalities * 3000),
+              semiMajorAxis: 30000,
+              semiMinorAxis: 30000,
               material: Cesium.Color.fromAlpha(color, 0.15),
               outline: true,
               outlineColor: Cesium.Color.fromAlpha(color, 0.4),
@@ -724,6 +726,19 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     };
 
     load();
+
+    // Re-fetch when user zooms into city level
+    let debounceTimer: ReturnType<typeof setTimeout>;
+    const onCameraChange = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (!cancelled && v.camera.positionCartographic.height < 50_000 && particles.length === 0) {
+          load();
+        }
+      }, 1500);
+    };
+    v.camera.changed.addEventListener(onCameraChange);
+
     const animate = () => {
       if (cancelled) return;
       for (let i = 0; i < particles.length; i++) {
@@ -738,12 +753,25 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
     return () => {
       cancelled = true;
+      clearTimeout(debounceTimer);
+      v.camera.changed.removeEventListener(onCameraChange);
       if (trafficAnimRef.current) cancelAnimationFrame(trafficAnimRef.current);
       if (trafficPrimRef.current) { v.scene.primitives.remove(trafficPrimRef.current); trafficPrimRef.current = null; }
     };
   }, [activeLayers.traffic]);
 
-  // ======= GIBS LAYERS =======
+  // ======= GIBS LAYERS (need globe visible to render) =======
+  const updateGlobeForGibs = (v: Cesium.Viewer) => {
+    const hasAnyGibs = gibsLayerRef.current !== null || gibsIndividualRef.current.size > 0;
+    if (hasAnyGibs) {
+      // Show globe so imagery layers can render on it
+      v.scene.globe.show = true;
+    } else if (google3dLoadedRef.current) {
+      // No GIBS active — hide globe if Google 3D tiles are loaded
+      v.scene.globe.show = false;
+    }
+  };
+
   useEffect(() => {
     const v = viewerRef.current;
     if (!v) return;
@@ -754,6 +782,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       layer.alpha = 0.7;
       gibsLayerRef.current = layer;
     }
+    updateGlobeForGibs(v);
   }, [activeLayers.gibs]);
 
   useEffect(() => {
@@ -773,6 +802,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
         gibsIndividualRef.current.delete(cfg.id);
       }
     }
+    updateGlobeForGibs(v);
   }, [activeLayers.gibs_viirs_nightlights, activeLayers.gibs_firms_fire, activeLayers.gibs_aerosol, activeLayers.gibs_sst]);
 
   // ======= DETECTION OVERLAY DATA =======

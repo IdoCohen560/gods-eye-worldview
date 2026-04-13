@@ -1,35 +1,5 @@
 [
   {
-    "id": "nyc-timessquare",
-    "name": "Times Square NYC",
-    "lat": 40.7580,
-    "lon": -73.9855,
-    "type": "traffic",
-    "url": "https://webcams.nyctmc.org/api/cameras/6308f514-9d52-47a2-b88a-4012d0cc394c/image",
-    "format": "jpeg-refresh",
-    "city": "New York"
-  },
-  {
-    "id": "nyc-fdr42",
-    "name": "FDR Dr @ 42nd St",
-    "lat": 40.7489,
-    "lon": -73.9680,
-    "type": "traffic",
-    "url": "https://webcams.nyctmc.org/api/cameras/87a7c94b-e965-4bb5-bd1a-3e2b0450dffa/image",
-    "format": "jpeg-refresh",
-    "city": "New York"
-  },
-  {
-    "id": "nyc-lincoln",
-    "name": "Lincoln Tunnel",
-    "lat": 40.7623,
-    "lon": -74.0020,
-    "type": "traffic",
-    "url": "https://webcams.nyctmc.org/api/cameras/a09e2e8e-df48-481d-a53e-117ec3a6fdd0/image",
-    "format": "jpeg-refresh",
-    "city": "New York"
-  },
-  {
     "id": "jackson-hole",
     "name": "Jackson Hole Town Square",
     "lat": 43.4799,
@@ -38,16 +8,6 @@
     "url": "https://www.seejh.com/webcams/townsquare/townsquare.jpg",
     "format": "jpeg-refresh",
     "city": "Jackson, WY"
-  },
-  {
-    "id": "abbey-road",
-    "name": "Abbey Road Crossing London",
-    "lat": 51.5320,
-    "lon": -0.1779,
-    "type": "tourism",
-    "url": "https://www.abbeyroad.com/crossing-cam/img/abbey-road-crossing.jpg",
-    "format": "jpeg-refresh",
-    "city": "London"
   },
   {
     "id": "txdot-i35",
@@ -70,13 +30,53 @@
     "city": "Austin"
   },
   {
-    "id": "caltrans-405",
-    "name": "I-405 @ LAX Los Angeles",
-    "lat": 33.9510,
-    "lon": -118.3880,
+    "id": "txdot-i35-51st",
+    "name": "I-35 @ 51st Austin",
+    "lat": 30.3100,
+    "lon": -97.7200,
     "type": "traffic",
-    "url": "https://cwwp2.dot.ca.gov/data/d7/cctv/image/i405-nb-century/i405-nb-century.jpg",
+    "url": "https://its.txdot.gov/ITS_WEB/FrontEnd/snapshots/AUS-Camera030.jpg",
     "format": "jpeg-refresh",
-    "city": "Los Angeles"
+    "city": "Austin"
+  },
+  {
+    "id": "wsdot-i5-seattle",
+    "name": "I-5 @ Downtown Seattle",
+    "lat": 47.6097,
+    "lon": -122.3331,
+    "type": "traffic",
+    "url": "https://images.wsdot.wa.gov/nw/005vc06500.jpg",
+    "format": "jpeg-refresh",
+    "city": "Seattle"
+  },
+  {
+    "id": "wsdot-sr520",
+    "name": "SR-520 Bridge Seattle",
+    "lat": 47.6388,
+    "lon": -122.2461,
+    "type": "traffic",
+    "url": "https://images.wsdot.wa.gov/nw/520vc00264.jpg",
+    "format": "jpeg-refresh",
+    "city": "Seattle"
+  },
+  {
+    "id": "fdot-i95-miami",
+    "name": "I-95 @ Downtown Miami",
+    "lat": 25.7751,
+    "lon": -80.1948,
+    "type": "traffic",
+    "url": "https://fl511.com/map/Ede20c27bc-7c0f-4956-b0d2-3d87a2c4d718",
+    "format": "jpeg-refresh",
+    "city": "Miami"
+  },
+  {
+    "id": "honolulu-waikiki",
+    "name": "Waikiki Beach Honolulu",
+    "lat": 21.2793,
+    "lon": -157.8292,
+    "type": "tourism",
+    "url": "https://www.hawaiibeachcams.com/wp-content/uploads/waikiki-beach-cam.jpg",
+    "format": "jpeg-refresh",
+    "city": "Honolulu"
   }
 ]

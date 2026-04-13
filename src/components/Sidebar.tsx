@@ -1,62 +1,99 @@
+import { useState } from 'react';
+
 interface Props {
   activeLayers: Record<string, boolean>;
   toggleLayer: (layer: string) => void;
 }
 
-const FEED_LAYERS = [
-  { key: 'aircraft', label: 'Aircraft (OpenSky)' },
-  { key: 'satellites', label: 'Satellites (CelesTrak)' },
-  { key: 'cctv', label: 'CCTV Cameras' },
-  { key: 'traffic', label: 'Traffic Flow (OSM)' },
-];
+interface LayerGroup {
+  title: string;
+  layers: { key: string; label: string; live?: boolean }[];
+}
 
-const GIBS_IMAGERY = [
-  { key: 'gibs', label: 'MODIS True Color' },
-  { key: 'gibs_viirs_nightlights', label: 'VIIRS Night Lights' },
-  { key: 'gibs_firms_fire', label: 'Fire / Thermal' },
-  { key: 'gibs_aerosol', label: 'Aerosol Optical Depth' },
-  { key: 'gibs_sst', label: 'Sea Surface Temp' },
+const LAYER_GROUPS: LayerGroup[] = [
+  {
+    title: 'LIVE FEEDS',
+    layers: [
+      { key: 'aircraft', label: 'Aircraft (OpenSky)', live: true },
+      { key: 'satellites', label: 'Satellites (CelesTrak)', live: true },
+      { key: 'cctv', label: 'CCTV Cameras', live: true },
+      { key: 'traffic', label: 'Traffic Flow (OSM)' },
+      { key: 'ships', label: 'Ships (AISStream)', live: true },
+    ],
+  },
+  {
+    title: 'THREAT INTELLIGENCE',
+    layers: [
+      { key: 'conflicts', label: 'Conflicts & Battles (ACLED)' },
+      { key: 'earthquakes', label: 'Earthquakes (USGS)', live: true },
+      { key: 'fires', label: 'Fire/Thermal (FIRMS)' },
+    ],
+  },
+  {
+    title: 'NASA IMAGERY',
+    layers: [
+      { key: 'gibs', label: 'MODIS True Color' },
+      { key: 'gibs_viirs_nightlights', label: 'VIIRS Night Lights' },
+      { key: 'gibs_firms_fire', label: 'Fire Overlay' },
+      { key: 'gibs_aerosol', label: 'Aerosol Depth' },
+      { key: 'gibs_sst', label: 'Sea Surface Temp' },
+    ],
+  },
+  {
+    title: 'DETECTION',
+    layers: [
+      { key: 'boundingBoxes', label: 'Bounding Boxes' },
+    ],
+  },
 ];
 
 export default function Sidebar({ activeLayers, toggleLayer }: Props) {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const toggle = (title: string) => {
+    setCollapsed(prev => ({ ...prev, [title]: !prev[title] }));
+  };
+
   return (
     <div className="sidebar">
-      <h3>LIVE FEEDS</h3>
-      {FEED_LAYERS.map(layer => (
-        <label key={layer.key}>
-          <input
-            type="checkbox"
-            checked={activeLayers[layer.key] ?? false}
-            onChange={() => toggleLayer(layer.key)}
-          />
-          {layer.label}
-        </label>
-      ))}
-
-      <h3>NASA IMAGERY</h3>
-      {GIBS_IMAGERY.map(layer => (
-        <label key={layer.key}>
-          <input
-            type="checkbox"
-            checked={activeLayers[layer.key] ?? false}
-            onChange={() => toggleLayer(layer.key)}
-          />
-          {layer.label}
-        </label>
+      {LAYER_GROUPS.map(group => (
+        <div key={group.title}>
+          <h3 onClick={() => toggle(group.title)} style={{ cursor: 'pointer', userSelect: 'none' }}>
+            <span style={{ fontSize: 8, marginRight: 6 }}>
+              {collapsed[group.title] ? '▶' : '▼'}
+            </span>
+            {group.title}
+          </h3>
+          {!collapsed[group.title] && group.layers.map(layer => (
+            <label key={layer.key}>
+              <input
+                type="checkbox"
+                checked={activeLayers[layer.key] ?? false}
+                onChange={() => toggleLayer(layer.key)}
+              />
+              {layer.label}
+              {layer.live && (
+                <span style={{
+                  marginLeft: 'auto',
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: activeLayers[layer.key] ? 'var(--accent-green)' : 'var(--text-dim)',
+                  display: 'inline-block',
+                  flexShrink: 0,
+                }} />
+              )}
+            </label>
+          ))}
+        </div>
       ))}
 
       <h3>SHORTCUTS</h3>
       <div style={{ fontSize: 10, color: 'var(--text-dim)', padding: '0 8px', lineHeight: 1.8 }}>
         [1] Normal [2] NVG [3] FLIR<br />
         [4] CRT [5] Cel [6] Classified<br />
-        Click entity for details<br />
-        Scroll to zoom
-      </div>
-
-      <h3>PRESETS</h3>
-      <div style={{ fontSize: 10, color: 'var(--text-dim)', padding: '0 8px', lineHeight: 1.8 }}>
-        Search bar: type any location<br />
-        Try: "Pentagon", "Times Square"
+        [7] B&W [8] Surveillance<br />
+        Click entity for details
       </div>
     </div>
   );

@@ -5,6 +5,8 @@ import { FLIR_SHADER } from './FLIR';
 import { CRT_SHADER } from './CRTScanlines';
 import { CEL_SHADER } from './CelShading';
 import { CLASSIFIED_SHADER } from './Classified';
+import { BW_SHADER } from './BlackAndWhite';
+import { SURVEILLANCE_SHADER } from './Surveillance';
 
 const activeStages = new Map<string, Cesium.PostProcessStage>();
 
@@ -14,19 +16,18 @@ const SHADER_MAP: Record<string, string> = {
   crt: CRT_SHADER,
   cel: CEL_SHADER,
   classified: CLASSIFIED_SHADER,
+  bw: BW_SHADER,
+  surveillance: SURVEILLANCE_SHADER,
 };
 
 export function applyShader(viewer: Cesium.Viewer, mode: ShaderMode): void {
   if (mode === 'normal') return;
-
   const fragmentShader = SHADER_MAP[mode];
   if (!fragmentShader) return;
 
   const stage = new Cesium.PostProcessStage({
     fragmentShader,
-    uniforms: {
-      time: () => performance.now() / 1000.0,
-    },
+    uniforms: { time: () => performance.now() / 1000.0 },
   });
 
   viewer.scene.postProcessStages.add(stage);

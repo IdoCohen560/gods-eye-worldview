@@ -329,6 +329,103 @@ html, body, #root {
   50% { opacity: 0; }
 }
 
+/* === REC indicator === */
+.hud-rec {
+  position: absolute;
+  top: 8px;
+  left: 16px;
+  font-size: 12px;
+  color: #ff2d2d;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-shadow: 0 0 6px rgba(255, 45, 45, 0.5);
+  z-index: 51;
+}
+
+.rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff2d2d;
+  display: inline-block;
+}
+
+/* === Scanning line === */
+.hud-scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.15), transparent);
+  animation: scanDown 4s linear infinite;
+  pointer-events: none;
+  z-index: 51;
+}
+
+@keyframes scanDown {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+
+/* === Detection Overlay === */
+.detection-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 55;
+  overflow: hidden;
+}
+
+.detection-box {
+  position: absolute;
+  pointer-events: none;
+}
+
+.detection-box .corner {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-style: solid;
+  border-width: 0;
+}
+
+.detection-box .corner.tl {
+  top: 0; left: 0;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+
+.detection-box .corner.tr {
+  top: 0; right: 0;
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+
+.detection-box .corner.bl {
+  bottom: 0; left: 0;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+}
+
+.detection-box .corner.br {
+  bottom: 0; right: 0;
+  border-bottom-width: 1px;
+  border-right-width: 1px;
+}
+
+.detection-box .box-label {
+  position: absolute;
+  top: -14px;
+  left: 0;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+}
+
 /* === Cesium Overrides === */
 .cesium-viewer {
   width: 100%;

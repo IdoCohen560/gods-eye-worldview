@@ -13,6 +13,8 @@ const MODES: { key: ShaderMode; label: string; shortcut: string }[] = [
   { key: 'crt', label: 'CRT', shortcut: '4' },
   { key: 'cel', label: 'CEL', shortcut: '5' },
   { key: 'classified', label: 'CLASSIFIED', shortcut: '6' },
+  { key: 'bw', label: 'B&W', shortcut: '7' },
+  { key: 'surveillance', label: 'SURV', shortcut: '8' },
 ];
 
 export default function ShaderSelector({ current, onChange }: Props) {

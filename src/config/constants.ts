@@ -1,0 +1,12 @@
+export const CESIUM_ION_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN || '';
+export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+
+export const OPENSKY_API = '/.netlify/functions/opensky-proxy';
+export const CELESTRAK_API = 'https://celestrak.org/NORAD/elements/gp.php';
+export const GIBS_WMTS_URL = 'https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/wmts.cgi';
+export const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
+export const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+
+export const AIRCRAFT_POLL_INTERVAL = 10_000;
+export const SATELLITE_UPDATE_INTERVAL = 5_000;
+export const TRAFFIC_PARTICLE_COUNT = 5_000;

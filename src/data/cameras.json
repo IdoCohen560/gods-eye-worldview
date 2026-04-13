@@ -1,0 +1,102 @@
+[
+  {
+    "id": "txdot-001",
+    "name": "I-35 @ Riverside Dr",
+    "lat": 30.2500,
+    "lon": -97.7400,
+    "type": "traffic",
+    "url": "https://its.txdot.gov/ITS_WEB/FrontEnd/snapshots/AUS-I35_Riverside.jpg",
+    "format": "jpeg-refresh",
+    "city": "Austin"
+  },
+  {
+    "id": "txdot-002",
+    "name": "I-35 @ 51st St",
+    "lat": 30.3100,
+    "lon": -97.7200,
+    "type": "traffic",
+    "url": "https://its.txdot.gov/ITS_WEB/FrontEnd/snapshots/AUS-I35_51st.jpg",
+    "format": "jpeg-refresh",
+    "city": "Austin"
+  },
+  {
+    "id": "txdot-003",
+    "name": "US 183 @ Burnet Rd",
+    "lat": 30.3700,
+    "lon": -97.7250,
+    "type": "traffic",
+    "url": "https://its.txdot.gov/ITS_WEB/FrontEnd/snapshots/AUS-US183_Burnet.jpg",
+    "format": "jpeg-refresh",
+    "city": "Austin"
+  },
+  {
+    "id": "nyc-001",
+    "name": "Times Square",
+    "lat": 40.7580,
+    "lon": -73.9855,
+    "type": "traffic",
+    "url": "https://webcams.nyctmc.org/api/cameras/6308f514-9d52-47a2-b88a-4012d0cc394c/image",
+    "format": "jpeg-refresh",
+    "city": "New York"
+  },
+  {
+    "id": "nyc-002",
+    "name": "FDR Drive @ 42nd St",
+    "lat": 40.7489,
+    "lon": -73.9680,
+    "type": "traffic",
+    "url": "https://webcams.nyctmc.org/api/cameras/87a7c94b-e965-4bb5-bd1a-3e2b0450dffa/image",
+    "format": "jpeg-refresh",
+    "city": "New York"
+  },
+  {
+    "id": "nyc-003",
+    "name": "Brooklyn Bridge",
+    "lat": 40.7061,
+    "lon": -73.9969,
+    "type": "traffic",
+    "url": "https://webcams.nyctmc.org/api/cameras/f78a4b7e-b5e7-4db4-8534-43b0e8a1b5a1/image",
+    "format": "jpeg-refresh",
+    "city": "New York"
+  },
+  {
+    "id": "cal-001",
+    "name": "I-405 @ Wilshire Blvd",
+    "lat": 34.0326,
+    "lon": -118.4503,
+    "type": "traffic",
+    "url": "https://cwwp2.dot.ca.gov/data/d7/cctv/image/i405-wilshire/i405-wilshire.jpg",
+    "format": "jpeg-refresh",
+    "city": "Los Angeles"
+  },
+  {
+    "id": "cal-002",
+    "name": "US 101 @ Hollywood Blvd",
+    "lat": 34.1017,
+    "lon": -118.3350,
+    "type": "traffic",
+    "url": "https://cwwp2.dot.ca.gov/data/d7/cctv/image/us101-hollywood/us101-hollywood.jpg",
+    "format": "jpeg-refresh",
+    "city": "Los Angeles"
+  },
+  {
+    "id": "chi-001",
+    "name": "I-90/94 @ Michigan Ave",
+    "lat": 41.8781,
+    "lon": -87.6298,
+    "type": "traffic",
+    "url": "https://www.travelmidwest.com/lmiga/cameras/Chicago/I90-94_Michigan.jpg",
+    "format": "jpeg-refresh",
+    "city": "Chicago"
+  },
+  {
+    "id": "dc-001",
+    "name": "Constitution Ave NW",
+    "lat": 38.8921,
+    "lon": -77.0147,
+    "type": "traffic",
+    "url": "https://www.mapquest.com/webcams/dc/constitution_ave.jpg",
+    "format": "jpeg-refresh",
+    "city": "Washington DC"
+  }
+]

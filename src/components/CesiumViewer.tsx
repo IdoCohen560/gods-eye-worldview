@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Cesium from 'cesium';
-import { GOOGLE_MAPS_API_KEY, AIRCRAFT_POLL_INTERVAL, SATELLITE_UPDATE_INTERVAL } from '../config/constants';
+import { GOOGLE_MAPS_API_KEY, AIRCRAFT_POLL_INTERVAL, SATELLITE_UPDATE_INTERVAL, FIRMS_MAP_KEY } from '../config/constants';
 import { applyShader, removeShader } from '../shaders/ShaderManager';
 import { fetchAircraft, type AircraftState } from '../feeds/AircraftFeed';
 import { fetchSatellites, propagateAll, type SatelliteRecord, type SatellitePosition } from '../feeds/SatelliteFeed';
 import { loadCameras, type Camera } from '../feeds/CCTVFeed';
 import { fetchRoads } from '../feeds/TrafficFlow';
 import { fetchEarthquakes, type Earthquake } from '../feeds/EarthquakeFeed';
+import { fetchFIRMS, type FireHotspot } from '../feeds/FIRMSFeed';
 import { createGIBSLayer } from '../layers/GIBSLayerManager';
 import { GIBS_LAYERS } from '../config/gibs-layers';
 import DetectionOverlay from './DetectionOverlay';
@@ -50,6 +51,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   const trafficAnimRef = useRef<number>(0);
   const gibsLayerRef = useRef<Cesium.ImageryLayer | null>(null);
   const gibsIndividualRef = useRef<Map<string, Cesium.ImageryLayer>>(new Map());
+  const fireRef = useRef<Map<string, Cesium.Entity>>(new Map());
   const satDataRef = useRef<SatelliteRecord[]>([]);
 
   const [selectedAircraft, setSelectedAircraft] = useState<AircraftState | null>(null);
@@ -414,6 +416,63 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       earthquakeRef.current.clear();
     };
   }, [activeLayers.earthquakes]);
+
+  // ======= FIRMS FIRE/THERMAL =======
+  useEffect(() => {
+    const v = viewerRef.current;
+    if (!v || !activeLayers.fires || !FIRMS_MAP_KEY) {
+      fireRef.current.forEach(e => viewerRef.current?.entities.remove(e));
+      fireRef.current.clear();
+      if (!activeLayers.fires) onFeedCountUpdate('fires', 0);
+      return;
+    }
+
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const hotspots = await fetchFIRMS(FIRMS_MAP_KEY);
+        if (cancelled) return;
+
+        for (let i = 0; i < hotspots.length; i++) {
+          const h = hotspots[i];
+          const color = h.confidence === 'high' ? Cesium.Color.RED
+            : h.confidence === 'nominal' ? Cesium.Color.ORANGE
+            : Cesium.Color.YELLOW;
+          const size = Math.max(4, Math.min(12, h.frp / 10));
+
+          const entity = v.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(h.longitude, h.latitude, 0),
+            point: {
+              pixelSize: size,
+              color: color,
+              outlineColor: Cesium.Color.fromAlpha(Cesium.Color.RED, 0.5),
+              outlineWidth: 2,
+            },
+            label: {
+              text: `🔥 FRP:${h.frp.toFixed(0)}`,
+              font: '9px Share Tech Mono',
+              fillColor: Cesium.Color.ORANGE,
+              pixelOffset: new Cesium.Cartesian2(size + 4, 0),
+              distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 1_000_000),
+              style: Cesium.LabelStyle.FILL,
+            },
+            properties: { feedType: 'fire', data: h },
+          });
+          fireRef.current.set(`fire-${i}`, entity);
+        }
+
+        onFeedCountUpdate('fires', hotspots.length);
+      } catch (err) { console.error('FIRMS error:', err); }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+      fireRef.current.forEach(e => v.entities.remove(e));
+      fireRef.current.clear();
+    };
+  }, [activeLayers.fires]);
 
   // ======= TRAFFIC FLOW =======
   useEffect(() => {

@@ -88,20 +88,18 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
     viewer.clock.shouldAnimate = false;
 
-    // Google Photorealistic 3D Tiles — renders ON TOP of the globe
+    // Google Photorealistic 3D Tiles
     if (GOOGLE_MAPS_API_KEY) {
       Cesium.Cesium3DTileset.fromUrl(
         `https://tile.googleapis.com/v1/3dtiles/root.json?key=${GOOGLE_MAPS_API_KEY}`,
-        { showCreditsOnScreen: true }
+        { showCreditsOnScreen: true, maximumScreenSpaceError: 8 }
       ).then(tileset => {
         viewer.scene.primitives.add(tileset);
-        // Make globe translucent so 3D tiles show through at city level
-        // but globe is still visible at space level
-        viewer.scene.globe.translucency.enabled = true;
-        viewer.scene.globe.translucency.frontFaceAlpha = 0.0;
-        console.log('Google 3D Tiles loaded successfully');
+        viewer.scene.globe.show = false;
+        console.log('✅ Google 3D Tiles loaded successfully');
       }).catch(e => {
-        console.warn('Google 3D Tiles unavailable:', e);
+        console.error('❌ Google 3D Tiles failed:', e);
+        viewer.scene.globe.show = true;
       });
     }
 

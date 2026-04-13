@@ -67,7 +67,6 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     if (!containerRef.current || viewerRef.current) return;
 
     const viewer = new Cesium.Viewer(containerRef.current, {
-      terrain: Cesium.Terrain.fromWorldTerrain(),
       timeline: false,
       animation: false,
       baseLayerPicker: false,
@@ -80,19 +79,29 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       infoBox: false,
     });
 
-    // Stop the clock from advancing (prevents orbit animation artifacts)
+    // Try to add world terrain, but don't crash if Ion token is bad
+    Cesium.CesiumTerrainProvider.fromIonAssetId(1).then(terrain => {
+      viewer.scene.terrainProvider = terrain;
+    }).catch(e => {
+      console.warn('Cesium Ion terrain unavailable (token may be invalid):', e);
+    });
+
     viewer.clock.shouldAnimate = false;
 
+    // Google Photorealistic 3D Tiles — renders ON TOP of the globe
     if (GOOGLE_MAPS_API_KEY) {
       Cesium.Cesium3DTileset.fromUrl(
         `https://tile.googleapis.com/v1/3dtiles/root.json?key=${GOOGLE_MAPS_API_KEY}`,
         { showCreditsOnScreen: true }
       ).then(tileset => {
         viewer.scene.primitives.add(tileset);
-        // Hide the default globe so Google 3D tiles are visible
-        viewer.scene.globe.show = false;
+        // Make globe translucent so 3D tiles show through at city level
+        // but globe is still visible at space level
+        viewer.scene.globe.translucency.enabled = true;
+        viewer.scene.globe.translucency.frontFaceAlpha = 0.0;
+        console.log('Google 3D Tiles loaded successfully');
       }).catch(e => {
-        console.warn('Google 3D Tiles unavailable, keeping default globe:', e);
+        console.warn('Google 3D Tiles unavailable:', e);
       });
     }
 
@@ -292,6 +301,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
         let count = 0;
 
         for (const sat of positions) {
+          if (cancelled) break;
           if (!sat.position) continue;
           count++;
           const color = SAT_COLORS[sat.category] || Cesium.Color.CYAN;

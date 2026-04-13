@@ -9,10 +9,8 @@ export interface Earthquake {
   tsunami: boolean;
 }
 
-const USGS_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
-
 export async function fetchEarthquakes(): Promise<Earthquake[]> {
-  const res = await fetch(USGS_URL);
+  const res = await fetch('/.netlify/functions/usgs-proxy');
   if (!res.ok) throw new Error(`USGS API error: ${res.status}`);
   const data = await res.json();
 

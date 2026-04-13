@@ -2,26 +2,22 @@ export interface FireHotspot {
   latitude: number;
   longitude: number;
   brightness: number;
-  confidence: string; // 'low' | 'nominal' | 'high'
-  frp: number; // fire radiative power
+  confidence: string;
+  frp: number;
   daynight: string;
   acq_date: string;
   acq_time: string;
 }
 
-export async function fetchFIRMS(mapKey: string, bounds?: {
+export async function fetchFIRMS(bounds?: {
   west: number; south: number; east: number; north: number;
 }): Promise<FireHotspot[]> {
-  if (!mapKey) return [];
-
-  const coords = bounds
-    ? `${bounds.west},${bounds.south},${bounds.east},${bounds.north}`
-    : 'world';
-
-  const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/VIIRS_SNPP_NRT/${coords}/1`;
-
   try {
-    const res = await fetch(url);
+    const coords = bounds
+      ? `${bounds.west},${bounds.south},${bounds.east},${bounds.north}`
+      : 'world';
+
+    const res = await fetch(`/.netlify/functions/firms-proxy?coords=${coords}`);
     if (!res.ok) return [];
     const text = await res.text();
     const lines = text.trim().split('\n');
@@ -38,7 +34,6 @@ export async function fetchFIRMS(mapKey: string, bounds?: {
     const timeIdx = headers.indexOf('acq_time');
 
     const hotspots: FireHotspot[] = [];
-    // Limit to 1000 for performance
     for (let i = 1; i < Math.min(lines.length, 1001); i++) {
       const cols = lines[i].split(',');
       if (cols.length < headers.length) continue;

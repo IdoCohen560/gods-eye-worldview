@@ -1,5 +1,3 @@
-import { OVERPASS_URL } from '../config/constants';
-
 export interface RoadSegment {
   id: number;
   coords: [number, number][]; // [lon, lat]
@@ -12,12 +10,7 @@ export async function fetchRoads(bounds: {
   const bbox = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
   const query = `[out:json][timeout:25];way["highway"~"motorway|trunk|primary|secondary"](${bbox});out geom;`;
 
-  const res = await fetch(OVERPASS_URL, {
-    method: 'POST',
-    body: `data=${encodeURIComponent(query)}`,
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  });
-
+  const res = await fetch(`/.netlify/functions/overpass-proxy?data=${encodeURIComponent(query)}`);
   if (!res.ok) throw new Error(`Overpass error: ${res.status}`);
   const data = await res.json();
 

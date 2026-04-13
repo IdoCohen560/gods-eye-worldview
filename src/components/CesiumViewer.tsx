@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Cesium from 'cesium';
-import { GOOGLE_MAPS_API_KEY, AIRCRAFT_POLL_INTERVAL, SATELLITE_UPDATE_INTERVAL, FIRMS_MAP_KEY } from '../config/constants';
+import { GOOGLE_MAPS_API_KEY, AIRCRAFT_POLL_INTERVAL, SATELLITE_UPDATE_INTERVAL } from '../config/constants';
 import { applyShader, removeShader } from '../shaders/ShaderManager';
 import { fetchAircraft, type AircraftState } from '../feeds/AircraftFeed';
 import { fetchSatellites, propagateAll, type SatelliteRecord, type SatellitePosition } from '../feeds/SatelliteFeed';
@@ -618,7 +618,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   // ======= FIRMS FIRE/THERMAL =======
   useEffect(() => {
     const v = viewerRef.current;
-    if (!v || !activeLayers.fires || !FIRMS_MAP_KEY) {
+    if (!v || !activeLayers.fires) {
       fireRef.current.forEach(e => viewerRef.current?.entities.remove(e));
       fireRef.current.clear();
       if (!activeLayers.fires) onFeedCountUpdate('fires', 0);
@@ -629,7 +629,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
     const load = async () => {
       try {
-        const hotspots = await fetchFIRMS(FIRMS_MAP_KEY);
+        const hotspots = await fetchFIRMS();
         if (cancelled) return;
 
         for (let i = 0; i < hotspots.length; i++) {

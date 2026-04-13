@@ -1,8 +1,8 @@
 import type { Handler } from '@netlify/functions';
 
 const handler: Handler = async () => {
-  const email = process.env.VITE_ACLED_EMAIL;
-  const password = process.env.VITE_ACLED_PASSWORD;
+  const email = process.env.ACLED_EMAIL;
+  const password = process.env.ACLED_PASSWORD;
 
   if (!email || !password) {
     return { statusCode: 400, body: JSON.stringify({ error: 'ACLED credentials not configured' }) };

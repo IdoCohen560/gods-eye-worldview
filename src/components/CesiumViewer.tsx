@@ -5,7 +5,8 @@ import { applyShader, removeShader } from '../shaders/ShaderManager';
 import { fetchAircraft, type AircraftState } from '../feeds/AircraftFeed';
 import { fetchSatellites, propagateAll, type SatelliteRecord } from '../feeds/SatelliteFeed';
 import { loadCameras, type Camera } from '../feeds/CCTVFeed';
-import { createGIBSLayer, type GIBSLayerConfig } from '../layers/GIBSLayerManager';
+import { fetchRoads } from '../feeds/TrafficFlow';
+import { createGIBSLayer } from '../layers/GIBSLayerManager';
 import { GIBS_LAYERS } from '../config/gibs-layers';
 import type { ShaderMode, ViewState } from '../App';
 
@@ -14,16 +15,19 @@ interface Props {
   shaderMode: ShaderMode;
   activeLayers: Record<string, boolean>;
   onViewStateChange: (state: ViewState) => void;
-  onFeedCountsChange: (counts: { aircraft: number; satellites: number; cameras: number }) => void;
+  onFeedCountUpdate: (key: 'aircraft' | 'satellites' | 'cameras', count: number) => void;
 }
 
-export default function CesiumViewer({ onReady, shaderMode, activeLayers, onViewStateChange, onFeedCountsChange }: Props) {
+export default function CesiumViewer({ onReady, shaderMode, activeLayers, onViewStateChange, onFeedCountUpdate }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
   const prevShaderRef = useRef<ShaderMode>('normal');
   const aircraftEntitiesRef = useRef<Map<string, Cesium.Entity>>(new Map());
   const satelliteEntitiesRef = useRef<Map<string, Cesium.Entity>>(new Map());
   const cameraEntitiesRef = useRef<Map<string, Cesium.Entity>>(new Map());
+  const trafficPrimitivesRef = useRef<Cesium.PointPrimitiveCollection | null>(null);
+  const trafficAnimFrameRef = useRef<number>(0);
+  const gibsLayerRef = useRef<Cesium.ImageryLayer | null>(null);
   const [selectedAircraft, setSelectedAircraft] = useState<AircraftState | null>(null);
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
   const satelliteDataRef = useRef<SatelliteRecord[]>([]);
@@ -46,7 +50,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       infoBox: false,
     });
 
-    // Add Google 3D Tiles if API key provided
+    // Google Photorealistic 3D Tiles
     if (GOOGLE_MAPS_API_KEY) {
       Cesium.Cesium3DTileset.fromUrl(
         `https://tile.googleapis.com/v1/3dtiles/root.json?key=${GOOGLE_MAPS_API_KEY}`,
@@ -54,14 +58,13 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       ).then(tileset => {
         viewer.scene.primitives.add(tileset);
       }).catch(err => {
-        console.warn('Google 3D Tiles unavailable, using default globe:', err);
+        console.warn('Google 3D Tiles unavailable:', err);
       });
     }
 
-    // Enable lighting for day/night
     viewer.scene.globe.enableLighting = true;
 
-    // Camera change listener for HUD
+    // HUD camera updates
     viewer.camera.changed.addEventListener(() => {
       const cart = viewer.camera.positionCartographic;
       onViewStateChange({
@@ -72,20 +75,24 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       });
     });
 
-    // Click handler
+    // Click handler for entities
     const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
     handler.setInputAction((click: { position: Cesium.Cartesian2 }) => {
       const picked = viewer.scene.pick(click.position);
       if (Cesium.defined(picked) && picked.id) {
         const entity = picked.id as Cesium.Entity;
         const props = entity.properties;
-        if (props?.feedType?.getValue(viewer.clock.currentTime) === 'aircraft') {
-          setSelectedAircraft(props.data?.getValue(viewer.clock.currentTime));
+        const time = viewer.clock.currentTime;
+        if (props?.feedType?.getValue(time) === 'aircraft') {
+          setSelectedAircraft(props.data?.getValue(time));
           setSelectedCamera(null);
-        } else if (props?.feedType?.getValue(viewer.clock.currentTime) === 'camera') {
-          setSelectedCamera(props.data?.getValue(viewer.clock.currentTime));
+        } else if (props?.feedType?.getValue(time) === 'camera') {
+          setSelectedCamera(props.data?.getValue(time));
           setSelectedAircraft(null);
         }
+      } else {
+        setSelectedAircraft(null);
+        setSelectedCamera(null);
       }
     }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
@@ -108,27 +115,37 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     prevShaderRef.current = shaderMode;
   }, [shaderMode]);
 
-  // Aircraft feed
+  // ============ AIRCRAFT FEED ============
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || !activeLayers.aircraft) {
-      // Clear aircraft entities
       aircraftEntitiesRef.current.forEach(e => viewerRef.current?.entities.remove(e));
       aircraftEntitiesRef.current.clear();
+      if (!activeLayers.aircraft) onFeedCountUpdate('aircraft', 0);
       return;
     }
 
+    let cancelled = false;
+
     const poll = async () => {
+      if (cancelled) return;
       try {
         const rect = viewer.camera.computeViewRectangle();
         if (!rect) return;
+
+        // Clamp bounds to avoid huge queries
         const bounds = {
-          lamin: Cesium.Math.toDegrees(rect.south),
-          lomin: Cesium.Math.toDegrees(rect.west),
-          lamax: Cesium.Math.toDegrees(rect.north),
-          lomax: Cesium.Math.toDegrees(rect.east),
+          lamin: Math.max(-90, Cesium.Math.toDegrees(rect.south)),
+          lomin: Math.max(-180, Cesium.Math.toDegrees(rect.west)),
+          lamax: Math.min(90, Cesium.Math.toDegrees(rect.north)),
+          lomax: Math.min(180, Cesium.Math.toDegrees(rect.east)),
         };
+
+        // Skip if viewport is too large (zoomed out too far)
+        if (bounds.lamax - bounds.lamin > 30 || bounds.lomax - bounds.lomin > 60) return;
+
         const aircraft = await fetchAircraft(bounds);
+        if (cancelled) return;
         const currentIds = new Set<string>();
 
         for (const ac of aircraft) {
@@ -139,6 +156,10 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
           if (existing) {
             existing.position = new Cesium.ConstantPositionProperty(pos);
+            // Update billboard rotation for heading changes
+            if (existing.billboard) {
+              existing.billboard.rotation = new Cesium.ConstantProperty(-Cesium.Math.toRadians(ac.true_track || 0));
+            }
           } else {
             const altColor = (ac.baro_altitude || 0) < 3000
               ? Cesium.Color.LIME
@@ -163,16 +184,13 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
                 distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500_000),
                 style: Cesium.LabelStyle.FILL,
               },
-              properties: {
-                feedType: 'aircraft',
-                data: ac,
-              },
+              properties: { feedType: 'aircraft', data: ac },
             });
             aircraftEntitiesRef.current.set(ac.icao24, entity);
           }
         }
 
-        // Remove stale
+        // Remove stale aircraft
         for (const [id, entity] of aircraftEntitiesRef.current) {
           if (!currentIds.has(id)) {
             viewer.entities.remove(entity);
@@ -180,7 +198,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
           }
         }
 
-        onFeedCountsChange({ aircraft: aircraft.length, satellites: 0, cameras: 0 });
+        onFeedCountUpdate('aircraft', currentIds.size);
       } catch (err) {
         console.error('Aircraft feed error:', err);
       }
@@ -188,27 +206,35 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
     poll();
     const interval = setInterval(poll, AIRCRAFT_POLL_INTERVAL);
-    return () => clearInterval(interval);
+    return () => { cancelled = true; clearInterval(interval); };
   }, [activeLayers.aircraft]);
 
-  // Satellite feed
+  // ============ SATELLITE FEED ============
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || !activeLayers.satellites) {
       satelliteEntitiesRef.current.forEach(e => viewerRef.current?.entities.remove(e));
       satelliteEntitiesRef.current.clear();
+      if (!activeLayers.satellites) onFeedCountUpdate('satellites', 0);
       return;
     }
+
+    let cancelled = false;
 
     const init = async () => {
       try {
         const sats = await fetchSatellites();
+        if (cancelled) return;
         satelliteDataRef.current = sats;
 
         const positions = propagateAll(sats, new Date());
+        let count = 0;
         for (const sat of positions) {
           if (!sat.position) continue;
-          const pos = Cesium.Cartesian3.fromDegrees(sat.position.longitude, sat.position.latitude, sat.position.altitude * 1000);
+          count++;
+          const pos = Cesium.Cartesian3.fromDegrees(
+            sat.position.longitude, sat.position.latitude, sat.position.altitude * 1000
+          );
           const entity = viewer.entities.add({
             position: pos,
             point: {
@@ -231,7 +257,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
           satelliteEntitiesRef.current.set(sat.name, entity);
         }
 
-        onFeedCountsChange({ aircraft: 0, satellites: positions.length, cameras: 0 });
+        onFeedCountUpdate('satellites', count);
       } catch (err) {
         console.error('Satellite feed error:', err);
       }
@@ -239,8 +265,8 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
     init();
 
-    // Update positions periodically
     const interval = setInterval(() => {
+      if (cancelled) return;
       const positions = propagateAll(satelliteDataRef.current, new Date());
       for (const sat of positions) {
         if (!sat.position) continue;
@@ -253,15 +279,16 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       }
     }, SATELLITE_UPDATE_INTERVAL);
 
-    return () => clearInterval(interval);
+    return () => { cancelled = true; clearInterval(interval); };
   }, [activeLayers.satellites]);
 
-  // CCTV feed
+  // ============ CCTV FEED ============
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || !activeLayers.cctv) {
       cameraEntitiesRef.current.forEach(e => viewerRef.current?.entities.remove(e));
       cameraEntitiesRef.current.clear();
+      if (!activeLayers.cctv) onFeedCountUpdate('cameras', 0);
       return;
     }
 
@@ -287,7 +314,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       });
       cameraEntitiesRef.current.set(cam.id, entity);
     }
-    onFeedCountsChange({ aircraft: 0, satellites: 0, cameras: cameras.length });
+    onFeedCountUpdate('cameras', cameras.length);
 
     return () => {
       cameraEntitiesRef.current.forEach(e => viewer.entities.remove(e));
@@ -295,29 +322,159 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     };
   }, [activeLayers.cctv]);
 
-  // GIBS layers
+  // ============ TRAFFIC FLOW ============
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !activeLayers.traffic) {
+      // Cleanup
+      if (trafficPrimitivesRef.current) {
+        viewer?.scene.primitives.remove(trafficPrimitivesRef.current);
+        trafficPrimitivesRef.current = null;
+      }
+      if (trafficAnimFrameRef.current) {
+        cancelAnimationFrame(trafficAnimFrameRef.current);
+        trafficAnimFrameRef.current = 0;
+      }
+      return;
+    }
+
+    let cancelled = false;
+    let particles: { position: Cesium.Cartesian3; progress: number; speed: number; coords: [number, number][] }[] = [];
+
+    const pointCollection = new Cesium.PointPrimitiveCollection();
+    viewer.scene.primitives.add(pointCollection);
+    trafficPrimitivesRef.current = pointCollection;
+
+    const loadTraffic = async () => {
+      try {
+        const rect = viewer.camera.computeViewRectangle();
+        if (!rect) return;
+        const alt = viewer.camera.positionCartographic.height;
+        // Only load at city zoom
+        if (alt > 50_000) return;
+
+        const bounds = {
+          south: Cesium.Math.toDegrees(rect.south),
+          west: Cesium.Math.toDegrees(rect.west),
+          north: Cesium.Math.toDegrees(rect.north),
+          east: Cesium.Math.toDegrees(rect.east),
+        };
+
+        const roads = await fetchRoads(bounds);
+        if (cancelled) return;
+
+        particles = [];
+        pointCollection.removeAll();
+
+        for (const road of roads) {
+          if (road.coords.length < 2) continue;
+          const count = road.type === 'motorway' ? 8 : road.type === 'trunk' ? 5 : 3;
+          const speed = road.type === 'motorway' ? 0.003 : road.type === 'trunk' ? 0.002 : 0.001;
+
+          for (let i = 0; i < count; i++) {
+            const progress = Math.random();
+            const pos = interpolateRoad(road.coords, progress);
+            const point = pointCollection.add({
+              position: Cesium.Cartesian3.fromDegrees(pos[0], pos[1], 5),
+              pixelSize: 3,
+              color: road.type === 'motorway'
+                ? Cesium.Color.fromCssColorString('#00ff41')
+                : road.type === 'trunk'
+                  ? Cesium.Color.YELLOW
+                  : Cesium.Color.fromCssColorString('#00cc33'),
+            });
+            particles.push({ position: point.position, progress, speed, coords: road.coords });
+          }
+        }
+      } catch (err) {
+        console.error('Traffic flow error:', err);
+      }
+    };
+
+    loadTraffic();
+
+    // Animate particles
+    const animate = () => {
+      if (cancelled) return;
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.progress = (p.progress + p.speed) % 1;
+        const pos = interpolateRoad(p.coords, p.progress);
+        const point = pointCollection.get(i);
+        if (point) {
+          point.position = Cesium.Cartesian3.fromDegrees(pos[0], pos[1], 5);
+        }
+      }
+      trafficAnimFrameRef.current = requestAnimationFrame(animate);
+    };
+    // Start animation after a short delay for data to load
+    setTimeout(() => { if (!cancelled) animate(); }, 2000);
+
+    return () => {
+      cancelled = true;
+      if (trafficAnimFrameRef.current) cancelAnimationFrame(trafficAnimFrameRef.current);
+      if (trafficPrimitivesRef.current) {
+        viewer.scene.primitives.remove(trafficPrimitivesRef.current);
+        trafficPrimitivesRef.current = null;
+      }
+    };
+  }, [activeLayers.traffic]);
+
+  // ============ GIBS LAYERS ============
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer) return;
 
-    if (activeLayers.gibs) {
-      const layer = createGIBSLayer(GIBS_LAYERS[0]);
-      viewer.imageryLayers.addImageryProvider(layer);
+    // Remove existing GIBS layer
+    if (gibsLayerRef.current) {
+      viewer.imageryLayers.remove(gibsLayerRef.current);
+      gibsLayerRef.current = null;
     }
+
+    if (activeLayers.gibs) {
+      const provider = createGIBSLayer(GIBS_LAYERS[0]);
+      const layer = viewer.imageryLayers.addImageryProvider(provider);
+      layer.alpha = 0.7;
+      gibsLayerRef.current = layer;
+    }
+
+    return () => {
+      if (gibsLayerRef.current && viewer && !viewer.isDestroyed()) {
+        viewer.imageryLayers.remove(gibsLayerRef.current);
+        gibsLayerRef.current = null;
+      }
+    };
   }, [activeLayers.gibs]);
 
-  // Keyboard shortcuts
+  // ============ INDIVIDUAL GIBS LAYERS ============
+  const gibsIndividualRefs = useRef<Map<string, Cesium.ImageryLayer>>(new Map());
+
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return;
-      const modes: Record<string, ShaderMode> = {
-        '1': 'normal', '2': 'nvg', '3': 'flir', '4': 'crt', '5': 'cel', '6': 'classified',
-      };
-      // Shader shortcuts handled by parent via DOM events
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, []);
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+
+    for (const layerConfig of GIBS_LAYERS) {
+      const key = `gibs_${layerConfig.id}`;
+      const isActive = activeLayers[key];
+      const existing = gibsIndividualRefs.current.get(layerConfig.id);
+
+      if (isActive && !existing) {
+        const provider = createGIBSLayer(layerConfig);
+        const layer = viewer.imageryLayers.addImageryProvider(provider);
+        layer.alpha = 0.7;
+        gibsIndividualRefs.current.set(layerConfig.id, layer);
+      } else if (!isActive && existing) {
+        viewer.imageryLayers.remove(existing);
+        gibsIndividualRefs.current.delete(layerConfig.id);
+      }
+    }
+  }, [
+    activeLayers.gibs_modis_truecolor,
+    activeLayers.gibs_viirs_nightlights,
+    activeLayers.gibs_firms_fire,
+    activeLayers.gibs_aerosol,
+    activeLayers.gibs_sst,
+  ]);
 
   return (
     <>
@@ -345,7 +502,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
             src={selectedCamera.url}
             alt={selectedCamera.name}
             style={{ width: '100%' }}
-            onError={(e) => { (e.target as HTMLImageElement).src = ''; }}
+            onError={(e) => { (e.target as HTMLImageElement).alt = 'Feed unavailable'; }}
           />
         </div>
       )}
@@ -353,7 +510,19 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   );
 }
 
-// Simple canvas-based aircraft icon
+// Interpolate position along a road's coordinate array
+function interpolateRoad(coords: [number, number][], t: number): [number, number] {
+  if (coords.length < 2) return coords[0];
+  const totalSegments = coords.length - 1;
+  const segFloat = t * totalSegments;
+  const seg = Math.min(Math.floor(segFloat), totalSegments - 1);
+  const frac = segFloat - seg;
+  return [
+    coords[seg][0] + (coords[seg + 1][0] - coords[seg][0]) * frac,
+    coords[seg][1] + (coords[seg + 1][1] - coords[seg][1]) * frac,
+  ];
+}
+
 function createAircraftIcon(color: Cesium.Color): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = 16;
@@ -384,7 +553,6 @@ function createCameraIcon(): HTMLCanvasElement {
   ctx.lineTo(13, 13);
   ctx.closePath();
   ctx.fill();
-  // Lens
   ctx.fillStyle = '#333';
   ctx.beginPath();
   ctx.arc(8, 10, 3, 0, Math.PI * 2);

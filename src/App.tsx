@@ -36,6 +36,10 @@ export default function App() {
     setActiveLayers(prev => ({ ...prev, [layer]: !prev[layer] }));
   }, []);
 
+  const updateFeedCount = useCallback((key: 'aircraft' | 'satellites' | 'cameras', count: number) => {
+    setFeedCounts(prev => ({ ...prev, [key]: count }));
+  }, []);
+
   return (
     <div className="app">
       <CommandBar viewer={viewer} />
@@ -47,7 +51,7 @@ export default function App() {
             shaderMode={shaderMode}
             activeLayers={activeLayers}
             onViewStateChange={setViewState}
-            onFeedCountsChange={setFeedCounts}
+            onFeedCountUpdate={updateFeedCount}
           />
           <HUD viewState={viewState} feedCounts={feedCounts} shaderMode={shaderMode} />
           <ShaderSelector current={shaderMode} onChange={setShaderMode} />

@@ -87,8 +87,13 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       Cesium.Cesium3DTileset.fromUrl(
         `https://tile.googleapis.com/v1/3dtiles/root.json?key=${GOOGLE_MAPS_API_KEY}`,
         { showCreditsOnScreen: true }
-      ).then(ts => viewer.scene.primitives.add(ts))
-       .catch(e => console.warn('Google 3D Tiles unavailable:', e));
+      ).then(tileset => {
+        viewer.scene.primitives.add(tileset);
+        // Hide the default globe so Google 3D tiles are visible
+        viewer.scene.globe.show = false;
+      }).catch(e => {
+        console.warn('Google 3D Tiles unavailable, keeping default globe:', e);
+      });
     }
 
     viewer.scene.globe.enableLighting = true;

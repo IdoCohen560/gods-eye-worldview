@@ -105,8 +105,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
     v.scene.globe.enableLighting = true;
 
-    Cesium.createOsmBuildingsAsync().then(buildings => {
-      buildings.showOutline = false;
+    Cesium.createOsmBuildingsAsync({ showOutline: false }).then(buildings => {
       v.scene.primitives.add(buildings);
     }).catch(e => console.warn('OSM Buildings unavailable:', e));
 

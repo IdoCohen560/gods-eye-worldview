@@ -35,7 +35,7 @@ const GROUPS: { name: string; category: SatelliteRecord['category']; limit?: num
   { name: 'gps-ops', category: 'gps' },
   { name: 'weather', category: 'weather' },
   { name: 'military', category: 'military' },
-  { name: 'starlink', category: 'starlink', limit: 150 },
+  { name: 'starlink', category: 'starlink', limit: 50 },
 ];
 
 export async function fetchSatellites(): Promise<SatelliteRecord[]> {

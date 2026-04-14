@@ -21,7 +21,7 @@ const handler: Handler = async () => {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=300',
+        'Cache-Control': 'public, max-age=600',
       },
       body: data,
     };

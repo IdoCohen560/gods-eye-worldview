@@ -78,6 +78,8 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       fullscreenButton: false,
       selectionIndicator: true,
       infoBox: false,
+      requestRenderMode: true,
+      maximumRenderTimeChange: Infinity,
     });
 
     // Try to add world terrain, but don't crash if Ion token is bad
@@ -94,7 +96,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     if (GOOGLE_MAPS_API_KEY) {
       Cesium.Cesium3DTileset.fromUrl(
         `https://tile.googleapis.com/v1/3dtiles/root.json?key=${GOOGLE_MAPS_API_KEY}`,
-        { showCreditsOnScreen: true, maximumScreenSpaceError: 8 }
+        { showCreditsOnScreen: true, maximumScreenSpaceError: 16 }
       ).then(tileset => {
         viewer.scene.primitives.add(tileset);
         google3dLoadedRef.current = true;
@@ -106,8 +108,9 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
     viewer.scene.globe.enableLighting = true;
 
-    // Add OSM Buildings for 3D building geometry
+    // Add OSM Buildings (no outlines to avoid imagery draping conflict)
     Cesium.createOsmBuildingsAsync().then(buildings => {
+      buildings.showOutline = false;
       viewer.scene.primitives.add(buildings);
       console.log('✅ OSM Buildings loaded');
     }).catch(e => {
@@ -573,6 +576,9 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
     const load = async () => {
       try {
+        // Delay to avoid GDELT rate limits
+        await new Promise(r => setTimeout(r, 3000));
+        if (cancelled) return;
         const events = await fetchConflicts();
         if (cancelled) return;
 

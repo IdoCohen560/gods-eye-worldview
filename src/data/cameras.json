@@ -17,27 +17,7 @@
     "type": "traffic",
     "url": "https://its.txdot.gov/ITS_WEB/FrontEnd/snapshots/AUS-Camera056.jpg",
     "format": "jpeg-refresh",
-    "city": "Austin"
-  },
-  {
-    "id": "txdot-mopac",
-    "name": "MoPac @ 2222 Austin",
-    "lat": 30.3500,
-    "lon": -97.7800,
-    "type": "traffic",
-    "url": "https://its.txdot.gov/ITS_WEB/FrontEnd/snapshots/AUS-Camera022.jpg",
-    "format": "jpeg-refresh",
-    "city": "Austin"
-  },
-  {
-    "id": "txdot-i35-51st",
-    "name": "I-35 @ 51st Austin",
-    "lat": 30.3100,
-    "lon": -97.7200,
-    "type": "traffic",
-    "url": "https://its.txdot.gov/ITS_WEB/FrontEnd/snapshots/AUS-Camera030.jpg",
-    "format": "jpeg-refresh",
-    "city": "Austin"
+    "city": "Austin, TX"
   },
   {
     "id": "wsdot-i5-seattle",
@@ -47,27 +27,127 @@
     "type": "traffic",
     "url": "https://images.wsdot.wa.gov/nw/005vc06500.jpg",
     "format": "jpeg-refresh",
-    "city": "Seattle"
+    "city": "Seattle, WA"
   },
   {
-    "id": "wsdot-sr520",
-    "name": "SR-520 Bridge Seattle",
-    "lat": 47.6388,
-    "lon": -122.2461,
+    "id": "tfl-tower-bridge",
+    "name": "Tower Bridge London",
+    "lat": 51.5055,
+    "lon": -0.0754,
     "type": "traffic",
-    "url": "https://images.wsdot.wa.gov/nw/520vc00264.jpg",
+    "url": "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.01527.jpg",
     "format": "jpeg-refresh",
-    "city": "Seattle"
+    "city": "London, UK"
   },
   {
-    "id": "fdot-i95-miami",
-    "name": "I-95 @ Downtown Miami",
-    "lat": 25.7751,
-    "lon": -80.1948,
-    "type": "traffic",
-    "url": "https://fl511.com/map/Ede20c27bc-7c0f-4956-b0d2-3d87a2c4d718",
+    "id": "tfl-trafalgar",
+    "name": "Trafalgar Square London",
+    "lat": 51.5080,
+    "lon": -0.1281,
+    "type": "tourism",
+    "url": "https://s3-eu-west-1.amazonaws.com/jamcams.tfl.gov.uk/00001.01588.jpg",
     "format": "jpeg-refresh",
-    "city": "Miami"
+    "city": "London, UK"
+  },
+  {
+    "id": "nsw-harbour-bridge",
+    "name": "Sydney Harbour Bridge",
+    "lat": -33.8523,
+    "lon": 151.2108,
+    "type": "traffic",
+    "url": "https://www.livetraffic.com/images/cameras/cam_hb.jpg",
+    "format": "jpeg-refresh",
+    "city": "Sydney, AU"
+  },
+  {
+    "id": "tokyo-shibuya",
+    "name": "Shibuya Crossing Tokyo",
+    "lat": 35.6595,
+    "lon": 139.7004,
+    "type": "tourism",
+    "url": "https://weathernews.jp/s/topics/img/shibuya_cam.jpg",
+    "format": "jpeg-refresh",
+    "city": "Tokyo, JP"
+  },
+  {
+    "id": "dubai-burj",
+    "name": "Burj Khalifa View",
+    "lat": 25.1972,
+    "lon": 55.2744,
+    "type": "tourism",
+    "url": "https://www.earthcam.com/cams/common/icons/thumbs/dubaiburjkhalifa_480.jpg",
+    "format": "jpeg-refresh",
+    "city": "Dubai, UAE"
+  },
+  {
+    "id": "rio-copacabana",
+    "name": "Copacabana Beach",
+    "lat": -22.9711,
+    "lon": -43.1822,
+    "type": "tourism",
+    "url": "https://www.earthcam.com/cams/common/icons/thumbs/riodejaneiro_480.jpg",
+    "format": "jpeg-refresh",
+    "city": "Rio de Janeiro, BR"
+  },
+  {
+    "id": "paris-eiffel",
+    "name": "Eiffel Tower View",
+    "lat": 48.8584,
+    "lon": 2.2945,
+    "type": "tourism",
+    "url": "https://www.earthcam.com/cams/common/icons/thumbs/parisstreet_480.jpg",
+    "format": "jpeg-refresh",
+    "city": "Paris, FR"
+  },
+  {
+    "id": "rome-colosseum",
+    "name": "Colosseum Rome",
+    "lat": 41.8902,
+    "lon": 12.4922,
+    "type": "tourism",
+    "url": "https://www.earthcam.com/cams/common/icons/thumbs/romecolosseum_480.jpg",
+    "format": "jpeg-refresh",
+    "city": "Rome, IT"
+  },
+  {
+    "id": "cape-town",
+    "name": "Cape Town Harbour",
+    "lat": -33.9076,
+    "lon": 18.4173,
+    "type": "tourism",
+    "url": "https://www.earthcam.com/cams/common/icons/thumbs/capetown_480.jpg",
+    "format": "jpeg-refresh",
+    "city": "Cape Town, ZA"
+  },
+  {
+    "id": "mumbai-gateway",
+    "name": "Gateway of India Mumbai",
+    "lat": 18.9220,
+    "lon": 72.8347,
+    "type": "tourism",
+    "url": "https://www.earthcam.com/cams/common/icons/thumbs/mumbai_480.jpg",
+    "format": "jpeg-refresh",
+    "city": "Mumbai, IN"
+  },
+  {
+    "id": "singapore-marina",
+    "name": "Marina Bay Singapore",
+    "lat": 1.2814,
+    "lon": 103.8636,
+    "type": "tourism",
+    "url": "https://www.earthcam.com/cams/common/icons/thumbs/singaporeskyline_480.jpg",
+    "format": "jpeg-refresh",
+    "city": "Singapore, SG"
+  },
+  {
+    "id": "nyc-times-square",
+    "name": "Times Square NYC",
+    "lat": 40.7580,
+    "lon": -73.9855,
+    "type": "tourism",
+    "url": "https://www.earthcam.com/cams/common/icons/thumbs/timessquare_480.jpg",
+    "format": "jpeg-refresh",
+    "city": "New York, US"
   },
   {
     "id": "honolulu-waikiki",
@@ -77,6 +157,6 @@
     "type": "tourism",
     "url": "https://www.hawaiibeachcams.com/wp-content/uploads/waikiki-beach-cam.jpg",
     "format": "jpeg-refresh",
-    "city": "Honolulu"
+    "city": "Honolulu, HI"
   }
 ]

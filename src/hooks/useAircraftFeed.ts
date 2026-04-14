@@ -42,8 +42,59 @@ export function useAircraftFeed({ viewer, active, onCountUpdate }: UseAircraftFe
           lamax: Math.min(90, Cesium.Math.toDegrees(rect.north)),
           lomax: Math.min(180, Cesium.Math.toDegrees(rect.east)),
         };
-        // Skip if viewing entire globe (waste of API credits)
-        if (bounds.lamax - bounds.lamin > 90) return;
+        // If viewing entire globe, split into regional queries
+        if (bounds.lamax - bounds.lamin > 90) {
+          // Fetch 4 quadrants for global coverage
+          const quadrants = [
+            { lamin: 20, lomin: -130, lamax: 55, lomax: -60 },   // North America
+            { lamin: 35, lomin: -15, lamax: 65, lomax: 45 },     // Europe
+            { lamin: -10, lomin: 90, lamax: 50, lomax: 145 },    // Asia-Pacific
+            { lamin: -40, lomin: -80, lamax: 15, lomax: -30 },   // South America
+            { lamin: 10, lomin: 30, lamax: 40, lomax: 80 },      // Middle East / South Asia
+          ];
+          const allAircraft = (await Promise.allSettled(
+            quadrants.map(q => fetchAircraft(q).catch(() => []))
+          )).flatMap(r => r.status === 'fulfilled' ? r.value : []);
+          if (cancelled) return;
+
+          const ids = new Set<string>();
+          for (const ac of allAircraft) {
+            if (ac.longitude === null || ac.latitude === null) continue;
+            ids.add(ac.icao24);
+            const pos = Cesium.Cartesian3.fromDegrees(ac.longitude, ac.latitude, ac.baro_altitude || 0);
+            const existing = aircraftRef.current.get(ac.icao24);
+            if (existing) {
+              existing.position = new Cesium.ConstantPositionProperty(pos);
+            } else {
+              const alt = ac.baro_altitude || 0;
+              const color = alt < 3000 ? Cesium.Color.LIME : alt < 10000 ? Cesium.Color.YELLOW : Cesium.Color.RED;
+              const entity = v.entities.add({
+                position: pos,
+                billboard: {
+                  image: createAircraftIcon(color),
+                  width: 16, height: 16,
+                  rotation: -Cesium.Math.toRadians(ac.true_track || 0),
+                  alignedAxis: Cesium.Cartesian3.UNIT_Z,
+                },
+                label: {
+                  text: ac.callsign?.trim() || ac.icao24,
+                  font: '10px Share Tech Mono',
+                  fillColor: Cesium.Color.fromAlpha(Cesium.Color.WHITE, 0.8),
+                  pixelOffset: new Cesium.Cartesian2(0, -14),
+                  distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500_000),
+                  style: Cesium.LabelStyle.FILL,
+                },
+                properties: { feedType: 'aircraft', data: ac },
+              });
+              aircraftRef.current.set(ac.icao24, entity);
+            }
+          }
+          for (const [id, e] of aircraftRef.current) {
+            if (!ids.has(id)) { v.entities.remove(e); aircraftRef.current.delete(id); }
+          }
+          onCountUpdate(ids.size);
+          return;
+        }
 
         const aircraft = await fetchAircraft(bounds);
         if (cancelled) return;

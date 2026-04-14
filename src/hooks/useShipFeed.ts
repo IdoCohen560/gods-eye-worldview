@@ -21,14 +21,8 @@ export function useShipFeed({ viewer, active, onCountUpdate }: UseShipFeedOption
 
     const v = viewer;
 
-    // Use a wide bounding box for initial connection
-    const rect = v.camera.computeViewRectangle();
-    const bounds = rect ? {
-      south: Math.max(-90, Cesium.Math.toDegrees(rect.south)),
-      west: Math.max(-180, Cesium.Math.toDegrees(rect.west)),
-      north: Math.min(90, Cesium.Math.toDegrees(rect.north)),
-      east: Math.min(180, Cesium.Math.toDegrees(rect.east)),
-    } : { south: -60, west: -180, north: 60, east: 180 };
+    // Always use global bounds for worldwide ship coverage
+    const bounds = { south: -90, west: -180, north: 90, east: 180 };
 
     const disconnect = connectShipFeed(bounds, (ships) => {
       const currentIds = new Set<string>();

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import FeedStatusBar from './FeedStatusBar';
+import { GIBS_LAYERS } from '../config/gibs-layers';
 
 interface Props {
   activeLayers: Record<string, boolean>;
@@ -11,7 +12,7 @@ interface LayerGroup {
   layers: { key: string; label: string; live?: boolean }[];
 }
 
-const LAYER_GROUPS: LayerGroup[] = [
+const STATIC_GROUPS: LayerGroup[] = [
   {
     title: 'LIVE FEEDS',
     layers: [
@@ -28,16 +29,7 @@ const LAYER_GROUPS: LayerGroup[] = [
       { key: 'conflicts', label: 'Conflicts & Battles (ACLED)' },
       { key: 'earthquakes', label: 'Earthquakes (USGS)', live: true },
       { key: 'fires', label: 'Fire/Thermal (FIRMS)' },
-    ],
-  },
-  {
-    title: 'NASA IMAGERY',
-    layers: [
-      { key: 'gibs', label: 'MODIS True Color' },
-      { key: 'gibs_viirs_nightlights', label: 'VIIRS Night Lights' },
-      { key: 'gibs_firms_fire', label: 'Fire Overlay' },
-      { key: 'gibs_aerosol', label: 'Aerosol Depth' },
-      { key: 'gibs_sst', label: 'Sea Surface Temp' },
+      { key: 'eonet', label: 'EONET Natural Events (NASA)', live: true },
     ],
   },
   {
@@ -48,8 +40,22 @@ const LAYER_GROUPS: LayerGroup[] = [
   },
 ];
 
+function buildGibsGroups(): LayerGroup[] {
+  const byCategory = new Map<string, LayerGroup['layers']>();
+  for (const cfg of GIBS_LAYERS) {
+    const list = byCategory.get(cfg.category) ?? [];
+    list.push({ key: `gibs_${cfg.id}`, label: cfg.name });
+    byCategory.set(cfg.category, list);
+  }
+  return Array.from(byCategory.entries()).map(([cat, layers]) => ({
+    title: `NASA GIBS — ${cat.toUpperCase()}`,
+    layers,
+  }));
+}
+
 export default function Sidebar({ activeLayers, toggleLayer }: Props) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const groups = useMemo<LayerGroup[]>(() => [...STATIC_GROUPS, ...buildGibsGroups()], []);
 
   const toggle = (title: string) => {
     setCollapsed(prev => ({ ...prev, [title]: !prev[title] }));
@@ -57,7 +63,7 @@ export default function Sidebar({ activeLayers, toggleLayer }: Props) {
 
   return (
     <div className="sidebar">
-      {LAYER_GROUPS.map(group => (
+      {groups.map(group => (
         <div key={group.title}>
           <h3 onClick={() => toggle(group.title)} style={{ cursor: 'pointer', userSelect: 'none' }}>
             <span style={{ fontSize: 8, marginRight: 6 }}>

@@ -83,6 +83,9 @@ export default function HUD({ viewState, feedCounts, shaderMode }: Props) {
         <div style={{ color: feedCounts.fires > 0 ? 'var(--accent-amber)' : 'var(--accent-green)' }}>
           FIRE: {feedCounts.fires.toLocaleString()}
         </div>
+        <div style={{ color: feedCounts.eonet > 0 ? 'var(--accent-amber)' : 'var(--accent-green)' }}>
+          EONET: {feedCounts.eonet.toLocaleString()}
+        </div>
       </div>
     </div>
   );

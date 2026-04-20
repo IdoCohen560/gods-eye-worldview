@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import CesiumViewer from './components/CesiumViewer';
 import Sidebar from './components/Sidebar';
 import HUD from './components/HUD';
@@ -6,6 +6,7 @@ import ShaderSelector from './components/ShaderSelector';
 import CommandBar from './components/CommandBar';
 import BootSequence from './components/BootSequence';
 import ToastNotification from './components/ToastNotification';
+import { GIBS_LAYERS, GIBS_DEFAULT_LAYER_ID } from './config/gibs-layers';
 import type { Viewer } from 'cesium';
 
 export type ShaderMode = 'normal' | 'nvg' | 'flir' | 'crt' | 'cel' | 'classified' | 'bw' | 'surveillance';
@@ -25,6 +26,7 @@ export interface FeedCounts {
   conflicts: number;
   earthquakes: number;
   fires: number;
+  eonet: number;
 }
 
 export default function App() {
@@ -32,24 +34,26 @@ export default function App() {
   const [viewer, setViewer] = useState<Viewer | null>(null);
   const [shaderMode, setShaderMode] = useState<ShaderMode>('normal');
   const [viewState, setViewState] = useState<ViewState>({ lat: 0, lon: 0, alt: 10_000_000, heading: 0 });
-  const [activeLayers, setActiveLayers] = useState<Record<string, boolean>>({
-    aircraft: true,
-    satellites: false,
-    cctv: true,
-    traffic: false,
-    ships: false,
-    conflicts: false,
-    earthquakes: false,
-    fires: false,
-    boundingBoxes: true,
-    gibs: false,
-    gibs_viirs_nightlights: false,
-    gibs_firms_fire: false,
-    gibs_aerosol: false,
-    gibs_sst: false,
+  const [activeLayers, setActiveLayers] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {
+      aircraft: true,
+      satellites: false,
+      cctv: true,
+      traffic: false,
+      ships: false,
+      conflicts: false,
+      earthquakes: false,
+      fires: false,
+      eonet: true,
+      boundingBoxes: true,
+    };
+    for (const cfg of GIBS_LAYERS) {
+      initial[`gibs_${cfg.id}`] = cfg.id === GIBS_DEFAULT_LAYER_ID;
+    }
+    return initial;
   });
   const [feedCounts, setFeedCounts] = useState<FeedCounts>({
-    aircraft: 0, satellites: 0, cameras: 0, ships: 0, conflicts: 0, earthquakes: 0, fires: 0,
+    aircraft: 0, satellites: 0, cameras: 0, ships: 0, conflicts: 0, earthquakes: 0, fires: 0, eonet: 0,
   });
 
   const handleViewerReady = useCallback((v: Viewer) => {

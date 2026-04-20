@@ -12,6 +12,7 @@ import { useShipFeed } from '../hooks/useShipFeed';
 import { useConflictFeed } from '../hooks/useConflictFeed';
 import { useFireFeed } from '../hooks/useFireFeed';
 import { useTrafficFeed } from '../hooks/useTrafficFeed';
+import { useEONETFeed } from '../hooks/useEONETFeed';
 import { reportFeedStatus, reportToast } from '../hooks/useFeedStatus';
 import DetectionOverlay from './DetectionOverlay';
 import type { Camera } from '../feeds/CCTVFeed';
@@ -30,7 +31,6 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
   const prevShaderRef = useRef<ShaderMode>('normal');
-  const gibsLayerRef = useRef<Cesium.ImageryLayer | null>(null);
   const gibsIndividualRef = useRef<Map<string, Cesium.ImageryLayer>>(new Map());
 
   const [viewer, setViewer] = useState<Cesium.Viewer | null>(null);
@@ -70,6 +70,10 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   useTrafficFeed({
     viewer, active: activeLayers.traffic,
     onCountUpdate: () => {},
+  });
+  useEONETFeed({
+    viewer, active: activeLayers.eonet,
+    onCountUpdate: (c) => onFeedCountUpdate('eonet', c),
   });
 
   // ======= INIT VIEWER =======
@@ -179,19 +183,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     prevShaderRef.current = shaderMode;
   }, [shaderMode]);
 
-  // ======= GIBS LAYERS =======
-  useEffect(() => {
-    const v = viewerRef.current;
-    if (!v) return;
-    if (gibsLayerRef.current) { v.imageryLayers.remove(gibsLayerRef.current); gibsLayerRef.current = null; }
-    if (activeLayers.gibs) {
-      const provider = createGIBSLayer(GIBS_LAYERS[0]);
-      const layer = v.imageryLayers.addImageryProvider(provider);
-      layer.alpha = 0.7;
-      gibsLayerRef.current = layer;
-    }
-  }, [activeLayers.gibs]);
-
+  // ======= GIBS LAYERS (data-driven from catalog) =======
   useEffect(() => {
     const v = viewerRef.current;
     if (!v) return;
@@ -202,14 +194,15 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       if (isActive && !existing) {
         const provider = createGIBSLayer(cfg);
         const layer = v.imageryLayers.addImageryProvider(provider);
-        layer.alpha = 0.7;
+        // Basemap categories render fully opaque; overlays are translucent.
+        layer.alpha = cfg.category === 'Basemap' ? 1.0 : 0.75;
         gibsIndividualRef.current.set(cfg.id, layer);
       } else if (!isActive && existing) {
         v.imageryLayers.remove(existing);
         gibsIndividualRef.current.delete(cfg.id);
       }
     }
-  }, [activeLayers.gibs_viirs_nightlights, activeLayers.gibs_firms_fire, activeLayers.gibs_aerosol, activeLayers.gibs_sst]);
+  }, [activeLayers]);
 
   // ======= DETECTION OVERLAY =======
   useEffect(() => {

@@ -26,10 +26,12 @@ const STATIC_GROUPS: LayerGroup[] = [
   {
     title: 'THREAT INTELLIGENCE',
     layers: [
-      { key: 'conflicts', label: 'Conflicts & Battles (ACLED)' },
+      { key: 'conflicts', label: 'Conflicts (ACLED→GDELT)', live: true },
       { key: 'earthquakes', label: 'Earthquakes (USGS)', live: true },
       { key: 'fires', label: 'Fire/Thermal (FIRMS)' },
       { key: 'eonet', label: 'EONET Natural Events (NASA)', live: true },
+      { key: 'gdacs', label: 'GDACS Global Disasters', live: true },
+      { key: 'nws', label: 'NWS Severe Weather (US)', live: true },
     ],
   },
   {

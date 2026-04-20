@@ -27,6 +27,8 @@ export interface FeedCounts {
   earthquakes: number;
   fires: number;
   eonet: number;
+  gdacs: number;
+  nws: number;
 }
 
 export default function App() {
@@ -45,6 +47,8 @@ export default function App() {
       earthquakes: false,
       fires: false,
       eonet: true,
+      gdacs: true,
+      nws: false,
       boundingBoxes: true,
     };
     for (const cfg of GIBS_LAYERS) {
@@ -53,7 +57,8 @@ export default function App() {
     return initial;
   });
   const [feedCounts, setFeedCounts] = useState<FeedCounts>({
-    aircraft: 0, satellites: 0, cameras: 0, ships: 0, conflicts: 0, earthquakes: 0, fires: 0, eonet: 0,
+    aircraft: 0, satellites: 0, cameras: 0, ships: 0, conflicts: 0, earthquakes: 0, fires: 0,
+    eonet: 0, gdacs: 0, nws: 0,
   });
 
   const handleViewerReady = useCallback((v: Viewer) => {

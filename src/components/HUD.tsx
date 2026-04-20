@@ -86,6 +86,12 @@ export default function HUD({ viewState, feedCounts, shaderMode }: Props) {
         <div style={{ color: feedCounts.eonet > 0 ? 'var(--accent-amber)' : 'var(--accent-green)' }}>
           EONET: {feedCounts.eonet.toLocaleString()}
         </div>
+        <div style={{ color: feedCounts.gdacs > 0 ? 'var(--accent-red)' : 'var(--accent-green)' }}>
+          GDACS: {feedCounts.gdacs.toLocaleString()}
+        </div>
+        <div style={{ color: feedCounts.nws > 0 ? 'var(--accent-amber)' : 'var(--accent-green)' }}>
+          NWS: {feedCounts.nws.toLocaleString()}
+        </div>
       </div>
     </div>
   );

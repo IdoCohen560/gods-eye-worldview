@@ -168,12 +168,17 @@ export async function fetchConflicts(): Promise<ConflictEvent[]> {
     try {
       data = JSON.parse(text);
     } catch {
-      console.warn('GDELT JSON parse failed:', text.slice(0, 100));
+      console.warn('Conflict feed JSON parse failed:', text.slice(0, 100));
       return [];
     }
 
-    if (!data.articles) return [];
+    // ACLED path: server already normalised events with real lat/lon.
+    if (data.source === 'acled' && Array.isArray(data.events)) {
+      return data.events as ConflictEvent[];
+    }
 
+    // GDELT fallback path: articles need country-dictionary geocoding (with jitter).
+    if (!data.articles) return [];
     const events: ConflictEvent[] = [];
     for (const article of data.articles) {
       const title = article.title || '';
@@ -191,10 +196,9 @@ export async function fetchConflicts(): Promise<ConflictEvent[]> {
         location: country,
         date: article.seendate || '',
         url: article.url || '',
-        source: article.domain || '',
+        source: article.domain || 'GDELT',
       });
     }
-
     return events;
   } catch (err) {
     console.error('GDELT fetch error:', err);

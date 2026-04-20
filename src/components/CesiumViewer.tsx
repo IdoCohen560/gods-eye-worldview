@@ -13,6 +13,8 @@ import { useConflictFeed } from '../hooks/useConflictFeed';
 import { useFireFeed } from '../hooks/useFireFeed';
 import { useTrafficFeed } from '../hooks/useTrafficFeed';
 import { useEONETFeed } from '../hooks/useEONETFeed';
+import { useGDACSFeed } from '../hooks/useGDACSFeed';
+import { useNWSFeed } from '../hooks/useNWSFeed';
 import { reportFeedStatus, reportToast } from '../hooks/useFeedStatus';
 import DetectionOverlay from './DetectionOverlay';
 import type { Camera } from '../feeds/CCTVFeed';
@@ -74,6 +76,14 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   useEONETFeed({
     viewer, active: activeLayers.eonet,
     onCountUpdate: (c) => onFeedCountUpdate('eonet', c),
+  });
+  useGDACSFeed({
+    viewer, active: activeLayers.gdacs,
+    onCountUpdate: (c) => onFeedCountUpdate('gdacs', c),
+  });
+  useNWSFeed({
+    viewer, active: activeLayers.nws,
+    onCountUpdate: (c) => onFeedCountUpdate('nws', c),
   });
 
   // ======= INIT VIEWER =======

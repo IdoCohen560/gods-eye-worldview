@@ -20,7 +20,6 @@ import { satelliteRouter } from './routes/satellites';
 import { earthquakeRouter } from './routes/earthquakes';
 import { conflictRouter } from './routes/conflicts';
 import { firmsRouter } from './routes/firms';
-import { trafficRouter } from './routes/traffic';
 import { shipRouter } from './routes/ships';
 import { webcamsRouter } from './routes/webcams';
 
@@ -41,7 +40,6 @@ app.use('/api/satellites', satelliteRouter);
 app.use('/api/earthquakes', earthquakeRouter);
 app.use('/api/conflicts', conflictRouter);
 app.use('/api/firms', firmsRouter);
-app.use('/api/traffic', trafficRouter);
 app.use('/api/ships', shipRouter);
 app.use('/api/webcams', webcamsRouter);
 
@@ -54,6 +52,5 @@ app.listen(PORT, () => {
   console.log(`  GET /api/earthquakes`);
   console.log(`  GET /api/conflicts`);
   console.log(`  GET /api/firms?coords=world`);
-  console.log(`  GET /api/traffic?data=<overpass_query>`);
   console.log(`  WS  /api/ships (WebSocket relay)`);
 });

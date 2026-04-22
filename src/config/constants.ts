@@ -1,5 +1,6 @@
 export const CESIUM_ION_TOKEN = import.meta.env.VITE_CESIUM_ION_TOKEN || '';
 export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+export const TOMTOM_API_KEY = import.meta.env.VITE_TOMTOM_API_KEY || '';
 
 // Backend API base — Express server in dev, Netlify Functions in production
 const EXPRESS_BASE = 'http://localhost:3001/api';
@@ -29,10 +30,6 @@ export const CONFLICTS_API = API_BASE === NETLIFY_BASE
 export const FIRMS_API = API_BASE === NETLIFY_BASE
   ? `${NETLIFY_BASE}/firms-proxy`
   : `${API_BASE}/firms`;
-
-export const TRAFFIC_API = API_BASE === NETLIFY_BASE
-  ? `${NETLIFY_BASE}/overpass-proxy`
-  : `${API_BASE}/traffic`;
 
 export const SHIPS_API = `${API_BASE}/ships`;
 

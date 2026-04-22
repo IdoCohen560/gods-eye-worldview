@@ -1,12 +1,56 @@
 import type { Handler } from '@netlify/functions';
+import AdmZip from 'adm-zip';
 
-// ACLED: OAuth2 password grant (query-param email/key retired 2024).
-// GDELT: no auth, used as fallback when ACLED creds absent or rate-limited.
+// Priority: ACLED (OAuth2 password grant) → GDELT Events 2.0 raw export
+// (public, geo-pinned) → GDELT DOC articles (always available, no per-
+// event lat/lon).
 
 const ACLED_URL = 'https://acleddata.com/api/acled/read';
 const ACLED_TOKEN_URL = 'https://acleddata.com/oauth/token';
-const GDELT_URL = 'https://api.gdeltproject.org/api/v2/doc/doc';
+const GDELT_DOC_URL = 'https://api.gdeltproject.org/api/v2/doc/doc';
+const GDELT_EVENTS_INDEX = 'http://data.gdeltproject.org/gdeltv2/lastupdate.txt';
 const GDELT_UA = 'GodsEye/0.1 (contact via github.com/IdoCohen560/gods-eye-worldview)';
+
+const ROOT_LABELS: Record<string, string> = {
+  '14': 'Protest', '15': 'Force Posture', '16': 'Reduce Relations',
+  '17': 'Coerce', '18': 'Assault', '19': 'Fight', '20': 'Mass Violence',
+};
+function gdeltFormatDate(d: string) { return d.length === 8 ? `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}` : d; }
+
+async function fetchGdeltEvents(): Promise<NormalizedEvent[]> {
+  const ctl = AbortSignal.timeout(30_000);
+  const idx = await (await fetch(GDELT_EVENTS_INDEX, { signal: ctl })).text();
+  const line = idx.split('\n').find(l => l.includes('export.CSV'));
+  if (!line) throw new Error('GDELT lastupdate missing export.CSV');
+  const url = line.trim().split(/\s+/).pop()!;
+  const buf = Buffer.from(await (await fetch(url, { signal: ctl })).arrayBuffer());
+  const tsv = new AdmZip(buf).getEntries()[0]!.getData().toString();
+
+  const out: NormalizedEvent[] = [];
+  for (const ln of tsv.split('\n')) {
+    if (!ln) continue;
+    const c = ln.split('\t');
+    if (c.length < 61) continue;
+    const label = ROOT_LABELS[c[28]];
+    if (!label) continue;
+    const lat = parseFloat(c[56]), lon = parseFloat(c[57]);
+    if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+    const place = c[52] || c[53] || '';
+    out.push({
+      id: c[0],
+      event_type: label,
+      title: `${label}${place ? ` in ${place}` : ''}`,
+      latitude: lat,
+      longitude: lon,
+      country: c[53] || '',
+      location: place,
+      date: gdeltFormatDate(c[1] || ''),
+      url: c[60] || '',
+      source: 'GDELT',
+    });
+  }
+  return out;
+}
 
 interface NormalizedEvent {
   id: string; event_type: string; title: string;
@@ -93,7 +137,7 @@ async function fetchAcled(): Promise<NormalizedEvent[] | null> {
     }));
 }
 
-async function fetchGdelt(): Promise<any | null> {
+async function fetchGdeltArticles(): Promise<any | null> {
   const params = new URLSearchParams({
     query: 'theme:ARMEDCONFLICT',
     mode: 'artlist',
@@ -102,7 +146,7 @@ async function fetchGdelt(): Promise<any | null> {
     sort: 'DateDesc',
     timespan: '24h',
   });
-  const res = await fetch(`${GDELT_URL}?${params}`, {
+  const res = await fetch(`${GDELT_DOC_URL}?${params}`, {
     headers: { 'User-Agent': GDELT_UA, Accept: 'application/json' },
   });
   const text = await res.text();
@@ -122,9 +166,21 @@ const handler: Handler = async () => {
       bodyCacheTime = Date.now();
       return { statusCode: 200, headers: baseHeaders, body: bodyCache };
     }
-    const gdelt = await fetchGdelt();
-    if (gdelt) {
-      bodyCache = JSON.stringify({ source: 'gdelt', ...gdelt });
+
+    try {
+      const events = await fetchGdeltEvents();
+      if (events.length > 0) {
+        bodyCache = JSON.stringify({ source: 'gdelt-events', events });
+        bodyCacheTime = Date.now();
+        return { statusCode: 200, headers: baseHeaders, body: bodyCache };
+      }
+    } catch (err) {
+      console.warn('[acled-proxy] GDELT events fetch failed:', (err as Error).message);
+    }
+
+    const articles = await fetchGdeltArticles();
+    if (articles) {
+      bodyCache = JSON.stringify({ source: 'gdelt', ...articles });
       bodyCacheTime = Date.now();
       return { statusCode: 200, headers: baseHeaders, body: bodyCache };
     }

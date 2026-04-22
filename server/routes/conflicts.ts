@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { cacheGet, cacheSet, cacheGetStale } from '../cache';
 import { getAcledAccessToken } from '../_shared/acled-auth';
+import { fetchGdeltEvents } from '../_shared/gdelt-events';
 
 export const conflictRouter = Router();
 
 const ACLED_URL = 'https://acleddata.com/api/acled/read';
-const GDELT_URL = 'https://api.gdeltproject.org/api/v2/doc/doc';
+const GDELT_DOC_URL = 'https://api.gdeltproject.org/api/v2/doc/doc';
 const CACHE_TTL = 600_000; // 10 min
 const GDELT_UA = 'GodsEye/0.1 (contact via github.com/IdoCohen560/gods-eye-worldview)';
 
@@ -63,7 +64,7 @@ async function fetchAcled(): Promise<NormalizedEvent[] | null> {
     }));
 }
 
-async function fetchGdelt(): Promise<any | null> {
+async function fetchGdeltArticles(): Promise<any | null> {
   const params = new URLSearchParams({
     query: 'theme:ARMEDCONFLICT',
     mode: 'artlist',
@@ -72,7 +73,7 @@ async function fetchGdelt(): Promise<any | null> {
     sort: 'DateDesc',
     timespan: '24h',
   });
-  const upstream = await fetch(`${GDELT_URL}?${params}`, {
+  const upstream = await fetch(`${GDELT_DOC_URL}?${params}`, {
     headers: { 'User-Agent': GDELT_UA, Accept: 'application/json' },
     signal: AbortSignal.timeout(25_000),
   });
@@ -85,6 +86,8 @@ conflictRouter.get('/', async (_req, res) => {
   const cached = cacheGet('conflicts');
   if (cached) return res.json(cached);
 
+  // Priority: ACLED (curated, geo-pinned) → GDELT Events 2.0 (geo-pinned,
+  // public) → GDELT DOC articles (always works but no per-event lat/lon).
   try {
     const acled = await fetchAcled();
     if (acled && acled.length > 0) {
@@ -92,15 +95,27 @@ conflictRouter.get('/', async (_req, res) => {
       cacheSet('conflicts', payload, CACHE_TTL);
       return res.json(payload);
     }
-    const gdelt = await fetchGdelt();
-    if (gdelt) {
-      const payload = { source: 'gdelt' as const, ...gdelt };
+
+    try {
+      const gdeltEvents = await fetchGdeltEvents();
+      if (gdeltEvents.length > 0) {
+        const payload = { source: 'gdelt-events' as const, events: gdeltEvents };
+        cacheSet('conflicts', payload, CACHE_TTL);
+        return res.json(payload);
+      }
+    } catch (err) {
+      console.warn('[conflicts] GDELT events fetch failed, trying articles:', (err as Error).message);
+    }
+
+    const articles = await fetchGdeltArticles();
+    if (articles) {
+      const payload = { source: 'gdelt' as const, ...articles };
       cacheSet('conflicts', payload, CACHE_TTL);
       return res.json(payload);
     }
     const stale = cacheGetStale('conflicts');
     if (stale) return res.json(stale);
-    res.status(429).json({ error: 'GDELT rate limited', source: 'gdelt', articles: [] });
+    res.status(429).json({ error: 'All conflict sources failed', source: 'gdelt', articles: [] });
   } catch {
     const stale = cacheGetStale('conflicts');
     if (stale) return res.json(stale);

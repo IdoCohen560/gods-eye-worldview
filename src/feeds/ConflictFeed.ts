@@ -172,8 +172,8 @@ export async function fetchConflicts(): Promise<ConflictEvent[]> {
       return [];
     }
 
-    // ACLED path: server already normalised events with real lat/lon.
-    if (data.source === 'acled' && Array.isArray(data.events)) {
+    // Server-normalised events with real lat/lon (ACLED or GDELT Events 2.0).
+    if ((data.source === 'acled' || data.source === 'gdelt-events') && Array.isArray(data.events)) {
       return data.events as ConflictEvent[];
     }
 

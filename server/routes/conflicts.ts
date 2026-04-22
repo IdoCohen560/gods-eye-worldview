@@ -4,7 +4,7 @@ import { getAcledAccessToken } from '../_shared/acled-auth';
 
 export const conflictRouter = Router();
 
-const ACLED_URL = 'https://api.acleddata.com/acled/read';
+const ACLED_URL = 'https://acleddata.com/api/acled/read';
 const GDELT_URL = 'https://api.gdeltproject.org/api/v2/doc/doc';
 const CACHE_TTL = 600_000; // 10 min
 const GDELT_UA = 'GodsEye/0.1 (contact via github.com/IdoCohen560/gods-eye-worldview)';
@@ -32,10 +32,15 @@ async function fetchAcled(): Promise<NormalizedEvent[] | null> {
     limit: '1000',
     event_date: `${since}|${today}`,
     event_date_where: 'BETWEEN',
+    _format: 'json',
   });
 
   const upstream = await fetch(`${ACLED_URL}?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'User-Agent': 'Mozilla/5.0 (compatible; GodsEye/0.1)',
+    },
     signal: AbortSignal.timeout(20_000),
   });
   if (!upstream.ok) return null;

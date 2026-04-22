@@ -3,7 +3,7 @@ import type { Handler } from '@netlify/functions';
 // ACLED: OAuth2 password grant (query-param email/key retired 2024).
 // GDELT: no auth, used as fallback when ACLED creds absent or rate-limited.
 
-const ACLED_URL = 'https://api.acleddata.com/acled/read';
+const ACLED_URL = 'https://acleddata.com/api/acled/read';
 const ACLED_TOKEN_URL = 'https://acleddata.com/oauth/token';
 const GDELT_URL = 'https://api.gdeltproject.org/api/v2/doc/doc';
 const GDELT_UA = 'GodsEye/0.1 (contact via github.com/IdoCohen560/gods-eye-worldview)';
@@ -63,10 +63,15 @@ async function fetchAcled(): Promise<NormalizedEvent[] | null> {
     limit: '1000',
     event_date: `${since}|${today}`,
     event_date_where: 'BETWEEN',
+    _format: 'json',
   });
 
   const res = await fetch(`${ACLED_URL}?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      'User-Agent': 'Mozilla/5.0 (compatible; GodsEye/0.1)',
+    },
   });
   if (!res.ok) return null;
   const data: any = await res.json();

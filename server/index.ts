@@ -17,6 +17,7 @@ import { conflictRouter } from './routes/conflicts';
 import { firmsRouter } from './routes/firms';
 import { trafficRouter } from './routes/traffic';
 import { shipRouter } from './routes/ships';
+import { webcamsRouter } from './routes/webcams';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001');
@@ -37,6 +38,7 @@ app.use('/api/conflicts', conflictRouter);
 app.use('/api/firms', firmsRouter);
 app.use('/api/traffic', trafficRouter);
 app.use('/api/ships', shipRouter);
+app.use('/api/webcams', webcamsRouter);
 
 app.listen(PORT, () => {
   console.log(`[GOD'S EYE] Backend proxy running on port ${PORT}`);

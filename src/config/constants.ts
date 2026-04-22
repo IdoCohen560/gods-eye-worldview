@@ -36,6 +36,10 @@ export const TRAFFIC_API = API_BASE === NETLIFY_BASE
 
 export const SHIPS_API = `${API_BASE}/ships`;
 
+export const WEBCAMS_API = API_BASE === NETLIFY_BASE
+  ? `${NETLIFY_BASE}/windy-proxy`
+  : `${API_BASE}/webcams`;
+
 export const NOMINATIM_URL = 'https://nominatim.openstreetmap.org/search';
 
 export const FIRMS_MAP_KEY = import.meta.env.VITE_FIRMS_MAP_KEY || '';

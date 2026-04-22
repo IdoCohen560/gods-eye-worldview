@@ -29,28 +29,37 @@ export function useCCTVFeed({ viewer, active, onCountUpdate }: UseCCTVFeedOption
     }
 
     const v = viewer;
-    const cameras = loadCameras();
-    for (const cam of cameras) {
-      const entity = v.entities.add({
-        position: Cesium.Cartesian3.fromDegrees(cam.lon, cam.lat, 50),
-        billboard: {
-          image: createCameraIcon(), width: 20, height: 20,
-          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 200_000),
-        },
-        label: {
-          text: cam.name, font: '9px Share Tech Mono',
-          fillColor: Cesium.Color.ORANGE,
-          pixelOffset: new Cesium.Cartesian2(0, -16),
-          distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 50_000),
-          style: Cesium.LabelStyle.FILL,
-        },
-        properties: { feedType: 'camera', data: cam },
-      });
-      cameraRef.current.set(cam.id, entity);
-    }
-    onCountUpdate(cameras.length);
+    let cancelled = false;
 
-    return () => { cameraRef.current.forEach(e => v.entities.remove(e)); cameraRef.current.clear(); };
+    loadCameras().then(cameras => {
+      if (cancelled || v.isDestroyed()) return;
+      for (const cam of cameras) {
+        const entity = v.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(cam.lon, cam.lat, 50),
+          billboard: {
+            image: createCameraIcon(), width: 20, height: 20,
+            // Bumped from 200km → 2000km so cameras are visible at globe zoom-out
+            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 2_000_000),
+          },
+          label: {
+            text: cam.name, font: '9px Share Tech Mono',
+            fillColor: Cesium.Color.ORANGE,
+            pixelOffset: new Cesium.Cartesian2(0, -16),
+            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 50_000),
+            style: Cesium.LabelStyle.FILL,
+          },
+          properties: { feedType: 'camera', data: cam },
+        });
+        cameraRef.current.set(cam.id, entity);
+      }
+      onCountUpdate(cameras.length);
+    });
+
+    return () => {
+      cancelled = true;
+      cameraRef.current.forEach(e => v.entities.remove(e));
+      cameraRef.current.clear();
+    };
   }, [viewer, active]);
 
   return { cameraEntities: cameraRef };

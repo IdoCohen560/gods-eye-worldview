@@ -297,20 +297,24 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 }
 
 function CameraPanel({ camera, onClose }: { camera: Camera; onClose: () => void }) {
-  const [imgSrc, setImgSrc] = useState(camera.url);
+  const stillSrc = camera.preview || camera.thumbnail || '';
+  const [imgSrc, setImgSrc] = useState(stillSrc);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    setImgSrc(`${camera.url}?t=${Date.now()}`);
+    if (!stillSrc) { setError(true); return; }
+    setImgSrc(`${stillSrc}?t=${Date.now()}`);
     setError(false);
-    const interval = setInterval(() => { setImgSrc(`${camera.url}?t=${Date.now()}`); }, 5000);
+    const interval = setInterval(() => { setImgSrc(`${stillSrc}?t=${Date.now()}`); }, 5000);
     return () => clearInterval(interval);
-  }, [camera.url]);
+  }, [stillSrc]);
+
+  const label = [camera.city, camera.country].filter(Boolean).join(', ') || camera.city;
 
   return (
     <div className="video-panel">
       <div className="video-header">
-        <span style={{ color: 'var(--accent-green)', fontSize: 11 }}>{camera.name} — {camera.city}</span>
+        <span style={{ color: 'var(--accent-green)', fontSize: 11 }}>{camera.name} — {label}</span>
         <button className="close-btn" onClick={onClose}>X</button>
       </div>
       {error ? (
@@ -322,7 +326,11 @@ function CameraPanel({ camera, onClose }: { camera: Camera; onClose: () => void 
       )}
       <div style={{ padding: '4px 8px', fontSize: 9, color: 'var(--text-dim)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
         <span>LIVE — REFRESH 5s</span>
-        <span>{camera.type.toUpperCase()}</span>
+        {camera.player ? (
+          <a href={camera.player} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-green)' }}>OPEN LIVE PLAYER</a>
+        ) : (
+          <span>{(camera.type || 'WEBCAM').toUpperCase()}</span>
+        )}
       </div>
     </div>
   );

@@ -15,16 +15,29 @@ async function getAccessToken(): Promise<string | null> {
   if (memCached && Date.now() < memCached.expiresAt - 60_000) return memCached.accessToken;
 
   const body = new URLSearchParams({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret });
-  const resp = await fetch(TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body,
-  });
-  if (!resp.ok) return null;
-  const data: any = await resp.json();
-  if (!data.access_token) return null;
-  memCached = { accessToken: data.access_token, expiresAt: Date.now() + (data.expires_in ?? 1800) * 1000 };
-  return memCached.accessToken;
+  try {
+    const ac = new AbortController();
+    const to = setTimeout(() => ac.abort(), 5000);
+    let resp: Response;
+    try {
+      resp = await fetch(TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: ac.signal,
+      });
+    } finally {
+      clearTimeout(to);
+    }
+    if (!resp.ok) return null;
+    const data: any = await resp.json();
+    if (!data.access_token) return null;
+    memCached = { accessToken: data.access_token, expiresAt: Date.now() + (data.expires_in ?? 1800) * 1000 };
+    return memCached.accessToken;
+  } catch {
+    // Token endpoint unreachable / timed out — caller will continue unauth and likely hit an empty result.
+    return null;
+  }
 }
 
 const handler: Handler = async (event) => {
@@ -34,7 +47,8 @@ const handler: Handler = async (event) => {
   }
 
   const params = new URLSearchParams({ lamin, lomin, lamax, lomax });
-  const token = await getAccessToken();
+  let token: string | null = null;
+  try { token = await getAccessToken(); } catch { token = null; }
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
 

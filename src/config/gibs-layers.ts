@@ -16,7 +16,7 @@ export const GIBS_LAYERS: GIBSLayerConfig[] = [
     format: 'image/jpeg',
     maxLevel: 8,
     period: 'daily',
-    lagDays: 1,
+    lagDays: 2,
     isDefault: true,
   },
   {
@@ -28,7 +28,7 @@ export const GIBS_LAYERS: GIBSLayerConfig[] = [
     format: 'image/jpeg',
     maxLevel: 8,
     period: 'daily',
-    lagDays: 1,
+    lagDays: 2,
   },
   {
     id: 'viirs-snpp-truecolor',
@@ -39,7 +39,7 @@ export const GIBS_LAYERS: GIBSLayerConfig[] = [
     format: 'image/jpeg',
     maxLevel: 8,
     period: 'daily',
-    lagDays: 1,
+    lagDays: 2,
   },
   {
     id: 'viirs-noaa20-truecolor',
@@ -50,7 +50,7 @@ export const GIBS_LAYERS: GIBSLayerConfig[] = [
     format: 'image/jpeg',
     maxLevel: 8,
     period: 'daily',
-    lagDays: 1,
+    lagDays: 2,
   },
   {
     id: 'bluemarble',

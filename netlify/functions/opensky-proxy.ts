@@ -38,11 +38,34 @@ const handler: Handler = async (event) => {
   const headers: Record<string, string> = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
+  const emptyOk = (reason: string, upstreamStatus?: number) => ({
+    statusCode: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'public, max-age=5',
+    },
+    body: JSON.stringify({ states: [], time: Math.floor(Date.now() / 1000), error: reason, upstreamStatus }),
+  });
+
   try {
-    const res = await fetch(`${OPENSKY_URL}?${params}`, { headers });
+    // Budget the upstream so Netlify's 10s function cap doesn't turn into a 502.
+    const ac = new AbortController();
+    const to = setTimeout(() => ac.abort(), 8000);
+    let res: Response;
+    try {
+      res = await fetch(`${OPENSKY_URL}?${params}`, { headers, signal: ac.signal });
+    } finally {
+      clearTimeout(to);
+    }
+
+    if (!res.ok) {
+      // OpenSky now requires OAuth; anon returns 403/429. Return 200 + empty so the UI keeps working.
+      return emptyOk(`OpenSky ${res.status}${!token ? ' (no credentials)' : ''}`, res.status);
+    }
     const data = await res.text();
     return {
-      statusCode: res.status,
+      statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
@@ -50,8 +73,8 @@ const handler: Handler = async (event) => {
       },
       body: data,
     };
-  } catch {
-    return { statusCode: 502, body: JSON.stringify({ error: 'Failed to fetch from OpenSky' }) };
+  } catch (e: any) {
+    return emptyOk(e?.name === 'AbortError' ? 'OpenSky upstream timeout' : 'OpenSky fetch failed');
   }
 };
 

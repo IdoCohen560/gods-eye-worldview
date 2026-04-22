@@ -65,9 +65,13 @@ export function createGIBSLayer(
     tilingScheme: new Cesium.GeographicTilingScheme(),
   });
 
+  // GIBS returns HTTP 400 for JPEG tiles with no data (scan gaps, polar regions).
+  // This is expected, not an error — swallow silently so the console isn't flooded.
   provider.errorEvent.addEventListener((err: Error) => {
+    const msg = err?.message ?? '';
+    if (msg.includes('status code 400') || msg.includes('status code 404')) return;
     // eslint-disable-next-line no-console
-    console.warn(`[GIBS] tile error for ${cfg.id} (${cfg.layer}) date=${date || 'static'}:`, err.message);
+    console.warn(`[GIBS] ${cfg.id} (${cfg.layer}) date=${date || 'static'}:`, msg);
   });
 
   return provider;

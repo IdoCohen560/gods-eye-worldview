@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Cesium from 'cesium';
-import { GOOGLE_MAPS_API_KEY } from '../config/constants';
+import { GOOGLE_MAPS_API_KEY, CESIUM_ION_TOKEN } from '../config/constants';
 import { applyShader, removeShader } from '../shaders/ShaderManager';
 import { createGIBSLayer } from '../layers/GIBSLayerManager';
 import { GIBS_LAYERS } from '../config/gibs-layers';
@@ -90,12 +90,19 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   useEffect(() => {
     if (!containerRef.current || viewerRef.current) return;
 
+    // Guaranteed base imagery so the globe is never blank, even without an Ion token
+    // or when all GIBS layers are toggled off. OSM is tokenless and global.
+    const baseImagery = CESIUM_ION_TOKEN
+      ? undefined // Let Cesium pick Ion default (Bing)
+      : new Cesium.OpenStreetMapImageryProvider({ url: 'https://tile.openstreetmap.org/' });
+
     const v = new Cesium.Viewer(containerRef.current, {
       timeline: false, animation: false, baseLayerPicker: false,
       geocoder: false, homeButton: false, navigationHelpButton: false,
       sceneModePicker: false, fullscreenButton: false,
       selectionIndicator: true, infoBox: false,
       requestRenderMode: true, maximumRenderTimeChange: Infinity,
+      ...(baseImagery ? { baseLayer: Cesium.ImageryLayer.fromProviderAsync(Promise.resolve(baseImagery), {}) } : {}),
     });
 
     Cesium.CesiumTerrainProvider.fromIonAssetId(1).then(terrain => {

@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { cacheGet, cacheSet, cacheGetStale } from '../cache';
+import { getOpenSkyAccessToken } from '../_shared/opensky-auth';
 
 export const aircraftRouter = Router();
 
 const OPENSKY_URL = 'https://opensky-network.org/api/states/all';
-const CACHE_TTL = 8_000; // 8s — slightly less than poll interval
+const CACHE_TTL = 8_000;
 
 aircraftRouter.get('/', async (req, res) => {
   const { lamin, lomin, lamax, lomax } = req.query;
@@ -21,21 +22,24 @@ aircraftRouter.get('/', async (req, res) => {
       lamin: String(lamin), lomin: String(lomin),
       lamax: String(lamax), lomax: String(lomax),
     });
-    const url = `${OPENSKY_URL}?${params}`;
-
+    const token = await getOpenSkyAccessToken();
     const headers: Record<string, string> = {};
-    const username = process.env.OPENSKY_USERNAME || process.env.VITE_OPENSKY_USERNAME;
-    const password = process.env.OPENSKY_PASSWORD || process.env.VITE_OPENSKY_PASSWORD;
-    if (username && password) {
-      headers['Authorization'] = 'Basic ' +
-        Buffer.from(`${username}:${password}`).toString('base64');
-    }
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const upstream = await fetch(url, { headers });
+    const upstream = await fetch(`${OPENSKY_URL}?${params}`, { headers });
+    if (!upstream.ok) {
+      const stale = cacheGetStale(cacheKey);
+      if (stale) return res.json(stale);
+      return res.status(upstream.status).json({
+        error: `OpenSky ${upstream.status}`,
+        hint: !token ? 'Set OPENSKY_CLIENT_ID and OPENSKY_CLIENT_SECRET to unlock higher rate limit' : undefined,
+        states: [],
+      });
+    }
     const data = await upstream.json();
     cacheSet(cacheKey, data, CACHE_TTL);
     res.json(data);
-  } catch (err) {
+  } catch {
     const stale = cacheGetStale(cacheKey);
     if (stale) return res.json(stale);
     res.status(502).json({ error: 'Failed to fetch aircraft', states: [] });

@@ -1,4 +1,9 @@
 import 'dotenv/config';
+import dns from 'node:dns';
+
+// Some upstreams (GDELT especially) respond slowly or not at all over IPv6 in
+// WSL; Node's undici tries v6 first by default and hits UND_ERR_CONNECT_TIMEOUT.
+dns.setDefaultResultOrder('ipv4first');
 
 // Map VITE_ prefixed env vars to non-prefixed for server use
 // (user's .env likely has VITE_ versions since they were set for the Vite frontend)

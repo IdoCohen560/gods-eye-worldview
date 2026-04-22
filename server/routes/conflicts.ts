@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import { cacheGet, cacheSet, cacheGetStale } from '../cache';
+import { getAcledAccessToken } from '../_shared/acled-auth';
 
 export const conflictRouter = Router();
 
 const ACLED_URL = 'https://api.acleddata.com/acled/read';
 const GDELT_URL = 'https://api.gdeltproject.org/api/v2/doc/doc';
 const CACHE_TTL = 600_000; // 10 min
+const GDELT_UA = 'GodsEye/0.1 (contact via github.com/IdoCohen560/gods-eye-worldview)';
 
 interface NormalizedEvent {
   id: string;
@@ -21,20 +23,21 @@ interface NormalizedEvent {
 }
 
 async function fetchAcled(): Promise<NormalizedEvent[] | null> {
-  const email = process.env.ACLED_EMAIL || process.env.VITE_ACLED_EMAIL;
-  const key = process.env.ACLED_KEY || process.env.ACLED_PASSWORD || process.env.VITE_ACLED_PASSWORD;
-  if (!email || !key) return null;
+  const token = await getAcledAccessToken();
+  if (!token) return null;
 
   const since = new Date(Date.now() - 14 * 86_400_000).toISOString().slice(0, 10);
   const today = new Date().toISOString().slice(0, 10);
   const params = new URLSearchParams({
-    email, key,
     limit: '1000',
     event_date: `${since}|${today}`,
     event_date_where: 'BETWEEN',
   });
 
-  const upstream = await fetch(`${ACLED_URL}?${params}`);
+  const upstream = await fetch(`${ACLED_URL}?${params}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(20_000),
+  });
   if (!upstream.ok) return null;
   const data: any = await upstream.json();
   if (!Array.isArray(data?.data)) return null;
@@ -55,6 +58,24 @@ async function fetchAcled(): Promise<NormalizedEvent[] | null> {
     }));
 }
 
+async function fetchGdelt(): Promise<any | null> {
+  const params = new URLSearchParams({
+    query: 'theme:ARMEDCONFLICT',
+    mode: 'artlist',
+    maxrecords: '250',
+    format: 'json',
+    sort: 'DateDesc',
+    timespan: '24h',
+  });
+  const upstream = await fetch(`${GDELT_URL}?${params}`, {
+    headers: { 'User-Agent': GDELT_UA, Accept: 'application/json' },
+    signal: AbortSignal.timeout(25_000),
+  });
+  const text = await upstream.text();
+  if (!text.startsWith('{') && !text.startsWith('[')) return null;
+  try { return JSON.parse(text); } catch { return null; }
+}
+
 conflictRouter.get('/', async (_req, res) => {
   const cached = cacheGet('conflicts');
   if (cached) return res.json(cached);
@@ -66,27 +87,15 @@ conflictRouter.get('/', async (_req, res) => {
       cacheSet('conflicts', payload, CACHE_TTL);
       return res.json(payload);
     }
-
-    // Fallback: GDELT (no creds needed). theme:ARMEDCONFLICT removes movie/protest noise.
-    const params = new URLSearchParams({
-      query: 'theme:ARMEDCONFLICT',
-      mode: 'artlist',
-      maxrecords: '250',
-      format: 'json',
-      sort: 'DateDesc',
-      timespan: '24h',
-    });
-    const upstream = await fetch(`${GDELT_URL}?${params}`);
-    const text = await upstream.text();
-    if (!text.startsWith('{') && !text.startsWith('[')) {
-      const stale = cacheGetStale('conflicts');
-      if (stale) return res.json(stale);
-      return res.status(429).json({ error: 'GDELT rate limited', source: 'gdelt', articles: [] });
+    const gdelt = await fetchGdelt();
+    if (gdelt) {
+      const payload = { source: 'gdelt' as const, ...gdelt };
+      cacheSet('conflicts', payload, CACHE_TTL);
+      return res.json(payload);
     }
-    const data = JSON.parse(text);
-    const payload = { source: 'gdelt' as const, ...data };
-    cacheSet('conflicts', payload, CACHE_TTL);
-    res.json(payload);
+    const stale = cacheGetStale('conflicts');
+    if (stale) return res.json(stale);
+    res.status(429).json({ error: 'GDELT rate limited', source: 'gdelt', articles: [] });
   } catch {
     const stale = cacheGetStale('conflicts');
     if (stale) return res.json(stale);

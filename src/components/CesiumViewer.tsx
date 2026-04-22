@@ -99,6 +99,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     });
 
     Cesium.CesiumTerrainProvider.fromIonAssetId(1).then(terrain => {
+      if (v.isDestroyed()) return;
       v.scene.terrainProvider = terrain;
     }).catch(e => console.warn('Cesium Ion terrain unavailable:', e));
 
@@ -109,6 +110,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
         `https://tile.googleapis.com/v1/3dtiles/root.json?key=${GOOGLE_MAPS_API_KEY}`,
         { showCreditsOnScreen: true, maximumScreenSpaceError: 16 }
       ).then(tileset => {
+        if (v.isDestroyed()) return;
         v.scene.primitives.add(tileset);
         reportFeedStatus('google3d', 'online');
       }).catch(e => {
@@ -120,6 +122,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     v.scene.globe.enableLighting = true;
 
     Cesium.createOsmBuildingsAsync({ showOutline: false }).then(buildings => {
+      if (v.isDestroyed()) return;
       v.scene.primitives.add(buildings);
     }).catch(e => console.warn('OSM Buildings unavailable:', e));
 

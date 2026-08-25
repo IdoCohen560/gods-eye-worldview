@@ -1,58 +1,91 @@
-import { FIRMS_API } from '../config/constants';
+/**
+ * FIRMSFeed — fetches active fire data from NASA FIRMS.
+ * Adapted from reference repo's firmsHeatmap.js (simplified).
+ */
+import * as Cesium from 'cesium';
 
-export interface FireHotspot {
+const FIRMS_PROXY = '/api/firms';
+const POLL_INTERVAL = 600_000; // 10 minutes
+
+export interface FIRMSFire {
+  index: number;
   latitude: number;
   longitude: number;
-  brightness: number;
-  confidence: string;
   frp: number;
-  daynight: string;
-  acq_date: string;
-  acq_time: string;
+  confidence: 'high' | 'nominal' | 'low';
+  brightness: number;
+  satellite: string;
+  acqMs: number;
+  night: boolean;
 }
 
-export async function fetchFIRMS(bounds?: {
-  west: number; south: number; east: number; north: number;
-}): Promise<FireHotspot[]> {
+export async function fetchFIRMSFires(): Promise<FIRMSFire[]> {
   try {
-    const coords = bounds
-      ? `${bounds.west},${bounds.south},${bounds.east},${bounds.north}`
-      : 'world';
-
-    const res = await fetch(`${FIRMS_API}?coords=${coords}`);
-    if (!res.ok) return [];
-    const text = await res.text();
-    const lines = text.trim().split('\n');
-    if (lines.length < 2) return [];
-
-    const headers = lines[0].split(',');
-    const latIdx = headers.indexOf('latitude');
-    const lonIdx = headers.indexOf('longitude');
-    const brightIdx = headers.indexOf('bright_ti4');
-    const confIdx = headers.indexOf('confidence');
-    const frpIdx = headers.indexOf('frp');
-    const dnIdx = headers.indexOf('daynight');
-    const dateIdx = headers.indexOf('acq_date');
-    const timeIdx = headers.indexOf('acq_time');
-
-    const hotspots: FireHotspot[] = [];
-    for (let i = 1; i < Math.min(lines.length, 1001); i++) {
-      const cols = lines[i].split(',');
-      if (cols.length < headers.length) continue;
-      hotspots.push({
-        latitude: parseFloat(cols[latIdx]),
-        longitude: parseFloat(cols[lonIdx]),
-        brightness: parseFloat(cols[brightIdx]) || 0,
-        confidence: cols[confIdx] || 'nominal',
-        frp: parseFloat(cols[frpIdx]) || 0,
-        daynight: cols[dnIdx] || 'D',
-        acq_date: cols[dateIdx] || '',
-        acq_time: cols[timeIdx] || '',
-      });
+    const res = await fetch(FIRMS_PROXY);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.error === 'no_key') {
+      console.warn('[FIRMSFeed] API key required');
+      return [];
     }
-    return hotspots;
-  } catch (err) {
-    console.error('FIRMS fetch error:', err);
+    return (data.fires || []).map((f: any, i: number) => {
+      const conf = f.confidence || 0;
+      let confidence: 'high' | 'nominal' | 'low';
+      if (conf >= 80 || conf === 'high') confidence = 'high';
+      else if (conf >= 50 || conf === 'nominal') confidence = 'nominal';
+      else confidence = 'low';
+      return {
+        index: i,
+        latitude: f.latitude || f.lat,
+        longitude: f.longitude || f.lon,
+        frp: f.frp || 0,
+        confidence,
+        brightness: f.bright_ti4 || f.brightness || 0,
+        satellite: f.satellite || '',
+        acqMs: f.acq_date ? new Date(f.acq_date).getTime() : Date.now(),
+        night: f.daynight === 'N',
+      };
+    });
+  } catch (e) {
+    console.warn('[FIRMSFeed] Fetch failed:', e);
     return [];
   }
 }
+
+export function createFIRNSEntities(
+  viewer: Cesium.Viewer,
+  fires: FIRMSFire[]
+): Cesium.Entity[] {
+  const entities: Cesium.Entity[] = [];
+  const maxFrp = Math.max(...fires.map(f => f.frp), 1);
+
+  for (const fire of fires.slice(0, 3000)) {
+    const intensity = fire.frp / maxFrp;
+    const color = intensity > 0.7
+      ? Cesium.Color.RED
+      : intensity > 0.4
+        ? Cesium.Color.ORANGE
+        : Cesium.Color.YELLOW;
+
+    const entity = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(fire.longitude, fire.latitude, 0),
+      point: {
+        pixelSize: Math.max(4, Math.min(14, 6 + intensity * 10)),
+        color: color.withAlpha(0.7 + intensity * 0.3),
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+    });
+
+    (entity as any)._fireData = fire;
+    entities.push(entity);
+  }
+
+  return entities;
+}
+
+export function getFIRMSFPollInterval(): number {
+  return POLL_INTERVAL;
+}
+
+// Backward-compatible alias
+export const fetchFIRMS = fetchFIRMSFires;

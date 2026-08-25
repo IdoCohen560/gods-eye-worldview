@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as Cesium from 'cesium';
 import { GOOGLE_MAPS_API_KEY, CESIUM_ION_TOKEN } from '../config/constants';
 import { applyShader, removeShader } from '../shaders/ShaderManager';
@@ -15,8 +15,18 @@ import { useTrafficFeed } from '../hooks/useTrafficFeed';
 import { useEONETFeed } from '../hooks/useEONETFeed';
 import { useGDACSFeed } from '../hooks/useGDACSFeed';
 import { useNWSFeed } from '../hooks/useNWSFeed';
+import { useRocketLaunchFeed } from '../hooks/useRocketLaunchFeed';
+import { useRadioFeed } from '../hooks/useRadioFeed';
+import { useBikeshareFeed } from '../hooks/useBikeshareFeed';
+import { useMilitaryFeed } from '../hooks/useMilitaryFeed';
+import { useLocalDataFeed } from '../hooks/useLocalDataFeed';
+import { useFIRMSFeed } from '../hooks/useFIRMSFeed';
 import { reportFeedStatus, reportToast } from '../hooks/useFeedStatus';
 import DetectionOverlay from './DetectionOverlay';
+import ScopeMask from './ScopeMask';
+import CelestialRing from './CelestialRing';
+import WorldOverlay from './WorldOverlay';
+import { useCameraModes } from '../hooks/useCameraModes';
 import type { Camera } from '../feeds/CCTVFeed';
 import type { AircraftState } from '../feeds/AircraftFeed';
 import type { ShaderMode, ViewState, FeedCounts } from '../App';
@@ -39,6 +49,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   const [selectedAircraft, setSelectedAircraft] = useState<AircraftState | null>(null);
   const [selectedCamera, setSelectedCamera] = useState<Camera | null>(null);
   const [detectionEntities, setDetectionEntities] = useState<any[]>([]);
+  const [altitude, setAltitude] = useState(10_000_000);
 
   // ======= FEED HOOKS =======
   const { aircraftEntities } = useAircraftFeed({
@@ -85,6 +96,19 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     viewer, active: activeLayers.nws,
     onCountUpdate: (c) => onFeedCountUpdate('nws', c),
   });
+  useRocketLaunchFeed({ viewer, enabled: activeLayers.rockets });
+  useRadioFeed({ viewer, enabled: activeLayers.radio });
+  useBikeshareFeed({ viewer, enabled: activeLayers.bikeshare });
+  useMilitaryFeed({ viewer, enabled: activeLayers.military });
+  useLocalDataFeed({ viewer, enabled: activeLayers.datacenters, type: 'datacenters' });
+  useLocalDataFeed({ viewer, enabled: activeLayers.dams, type: 'dams' });
+  useFIRMSFeed({ viewer, enabled: activeLayers.fires });
+
+  // Camera modes
+  const { flyToPreset, presets } = useCameraModes({ viewer });
+
+  // World overlay entries (placeholder - could be populated from selected entities)
+  const overlayEntries: { id: string; worldPosition: Cesium.Cartesian3; text: string; color: string }[] = [];
 
   // ======= INIT VIEWER =======
   useEffect(() => {
@@ -135,6 +159,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
     v.camera.changed.addEventListener(() => {
       const c = v.camera.positionCartographic;
+      setAltitude(c.height);
       onViewStateChange({
         lat: Cesium.Math.toDegrees(c.latitude),
         lon: Cesium.Math.toDegrees(c.longitude),
@@ -276,6 +301,10 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   return (
     <>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+
+      <ScopeMask enabled={true} altitude={altitude} />
+      <CelestialRing enabled={true} viewer={viewerRef.current} />
+      <WorldOverlay viewer={viewerRef.current} entries={overlayEntries} />
 
       <DetectionOverlay
         viewer={viewerRef.current}

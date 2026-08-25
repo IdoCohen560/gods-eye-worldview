@@ -28,10 +28,26 @@ const STATIC_GROUPS: LayerGroup[] = [
     layers: [
       { key: 'conflicts', label: 'Conflicts (ACLED→GDELT)', live: true },
       { key: 'earthquakes', label: 'Earthquakes (USGS)', live: true },
-      { key: 'fires', label: 'Fire/Thermal (FIRMS)' },
+      { key: 'fires', label: 'Fire/Thermal (FIRMS)', live: true },
       { key: 'eonet', label: 'EONET Natural Events (NASA)', live: true },
       { key: 'gdacs', label: 'GDACS Global Disasters', live: true },
       { key: 'nws', label: 'NWS Severe Weather (US)', live: true },
+    ],
+  },
+  {
+    title: 'AEROSPACE & DEFENSE',
+    layers: [
+      { key: 'rockets', label: 'Rocket Launches (LL2)', live: true },
+      { key: 'military', label: 'Military Installations (OSM)' },
+    ],
+  },
+  {
+    title: 'INFRASTRUCTURE',
+    layers: [
+      { key: 'bikeshare', label: 'Bikeshare Stations (GBFS)', live: true },
+      { key: 'radio', label: 'Internet Radio (RadioBrowser)' },
+      { key: 'datacenters', label: 'Datacenters (Bundled)' },
+      { key: 'dams', label: 'Dams (Bundled)' },
     ],
   },
   {

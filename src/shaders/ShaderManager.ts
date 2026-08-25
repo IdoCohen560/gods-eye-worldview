@@ -7,6 +7,8 @@ import { CEL_SHADER } from './CelShading';
 import { CLASSIFIED_SHADER } from './Classified';
 import { BW_SHADER } from './BlackAndWhite';
 import { SURVEILLANCE_SHADER } from './Surveillance';
+import { NOIR_SHADER } from './Noir';
+import { SNOW_SHADER } from './Snow';
 
 const activeStages = new Map<string, Cesium.PostProcessStage>();
 
@@ -18,6 +20,8 @@ const SHADER_MAP: Record<string, string> = {
   classified: CLASSIFIED_SHADER,
   bw: BW_SHADER,
   surveillance: SURVEILLANCE_SHADER,
+  noir: NOIR_SHADER,
+  snow: SNOW_SHADER,
 };
 
 export function applyShader(viewer: Cesium.Viewer, mode: ShaderMode): void {

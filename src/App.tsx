@@ -7,7 +7,6 @@ import BootSequence from './components/BootSequence';
 import FirstRunExperience from './components/FirstRunExperience';
 import ToastNotification from './components/ToastNotification';
 import TitleBar from './components/TitleBar';
-import DisplayToggles from './components/DisplayToggles';
 import RightContextRail from './components/RightContextRail';
 import CctvPanel from './components/CctvPanel';
 import ScenePanel from './components/ScenePanel';
@@ -69,7 +68,6 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError:
 
 function AppInner() {
   const [booting, setBooting] = useState(true);
-  const [bootFaded, setBootFaded] = useState(false);
   const [viewer, setViewer] = useState<Viewer | null>(null);
   const [shaderMode, setShaderMode] = useState<ShaderMode>('normal');
   const [viewState, setViewState] = useState<ViewState>({ lat: 0, lon: 0, alt: 10_000_000, heading: 0 });
@@ -107,8 +105,6 @@ function AppInner() {
   const [models3dMode, setModels3dMode] = useState('proximity');
   const [cockpitEnabled, setCockpitEnabled] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
-  const [shadersOpen, setShadersOpen] = useState(false);
-  const [mapsOpen, setMapsOpen] = useState(false);
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -149,13 +145,11 @@ function AppInner() {
 
   const handleBootComplete = useCallback(() => {
     setBooting(false);
-    // Let the #loading-screen fade out via CSS, then remove from DOM
-    setTimeout(() => setBootFaded(true), 900);
   }, []);
 
   return (
     <div className={`app ${cleanView ? 'clean-view' : ''}`}>
-      {/* Loading overlay — stays mounted for CSS fade transition */}
+      {/* Loading overlay — fades out via CSS .hidden class */}
       <div id="loading-screen" className={booting ? '' : 'hidden'}>
         <div className="loader-content">
           <h2>GOD'S EYE <span className="title-accent">VIEW</span></h2>
@@ -163,15 +157,19 @@ function AppInner() {
         </div>
       </div>
 
-      {/* Boot progress bar — unmounts when boot completes */}
+      {/* Boot progress — unmounts when done */}
       {booting && <BootSequence onComplete={handleBootComplete} />}
 
       <ErrorBoundary>
         <FirstRunExperience onComplete={() => {}} />
         <ToastNotification />
+
+        {/* Title — top-left */}
         <TitleBar visible={!cleanView} styleName={SHADER_LABELS[shaderMode]} />
 
-        <DisplayToggles
+        {/* Right context rail — contains display toggles + context panel */}
+        <RightContextRail
+          viewer={viewer}
           hudVisible={hudVisible} onToggleHud={() => setHudVisible(!hudVisible)}
           hudLayout={hudLayout} onHudLayoutChange={setHudLayout}
           detectionEnabled={detectionEnabled} onToggleDetection={() => setDetectionEnabled(!detectionEnabled)}
@@ -189,10 +187,14 @@ function AppInner() {
           sharpenIntensity={sharpenIntensity} onSharpenIntensityChange={setSharpenIntensity}
         />
 
-        <DataPanel activeLayers={activeLayers} toggleLayer={toggleLayer} />
-        <CctvPanel />
-        <ScenePanel />
+        {/* Left panel stack — contains data + CCTV + scenes */}
+        <div id="left-panel-stack">
+          <DataPanel activeLayers={activeLayers} toggleLayer={toggleLayer} />
+          <CctvPanel />
+          <ScenePanel />
+        </div>
 
+        {/* Cesium globe */}
         <div className="cesium-container">
           <CesiumViewer
             onReady={handleViewerReady}
@@ -206,17 +208,22 @@ function AppInner() {
           />
         </div>
 
-        <HUD visible={hudVisible} layout={hudLayout} time={time} detectionEnabled={detectionEnabled} scopeEnabled={scopeEnabled} />
+        {/* HUD overlay — uses .active class for visibility */}
+        <HUD visible={hudVisible} layout={hudLayout} time={time} />
+
+        {/* Cockpit FPV */}
         <CockpitView visible={cockpitEnabled} viewer={viewer} onExit={() => setCockpitEnabled(false)} />
-        <RightContextRail viewer={viewer} />
+
+        {/* Bottom command dock */}
         <CommandDock
           viewer={viewer}
           voiceEnabled={voiceEnabled}
           onToggleVoice={() => setVoiceEnabled(!voiceEnabled)}
-          onShadersToggle={() => setShadersOpen(!shadersOpen)}
-          onMapSourceToggle={() => setMapsOpen(!mapsOpen)}
+          onShadersToggle={() => {}}
+          onMapSourceToggle={() => {}}
         />
 
+        {/* Scene player */}
         {scenes.length > 0 && (
           <div id="top-center-actions">
             {playback.running ? (

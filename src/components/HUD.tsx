@@ -2,17 +2,13 @@ interface Props {
   visible: boolean;
   layout: string;
   time: Date;
-  detectionEnabled: boolean;
-  scopeEnabled: boolean;
 }
 
-export default function HudOverlay({ visible, layout, time, detectionEnabled, scopeEnabled }: Props) {
-  if (!visible) return null;
-
+export default function HudOverlay({ visible, layout, time }: Props) {
   const utc = time.toISOString().replace('T', ' ').slice(0, 23) + 'Z';
 
   return (
-    <section id="hud-overlay" className={layout}>
+    <section id="hud-overlay" className={`${layout} ${visible ? 'active' : ''}`}>
       <div className="hud-hud-tray">
         <div className="hud-hud-row">
           <span className="hud-mono-dim">CLASSIFICATION: UNCLASSIFIED // FOUO</span>
@@ -28,10 +24,8 @@ export default function HudOverlay({ visible, layout, time, detectionEnabled, sc
         <span className="hud-mono-dim">{utc}</span>
       </div>
 
-      {/* Scanning line */}
       <div className="hud-scanning-line" />
 
-      {/* AI summary area */}
       <div className="hud-ai-summary hud-hud-tray">
         <span className="hud-mono-dim">NO PLACE LEFT BEHIND</span>
       </div>

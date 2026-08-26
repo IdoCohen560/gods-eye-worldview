@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import CesiumViewer from './components/CesiumViewer';
 import DataPanel from './components/DataPanel';
 import HUD from './components/HUD';
@@ -8,6 +8,10 @@ import FirstRunExperience from './components/FirstRunExperience';
 import ToastNotification from './components/ToastNotification';
 import TitleBar from './components/TitleBar';
 import DisplayToggles from './components/DisplayToggles';
+import RightContextRail from './components/RightContextRail';
+import CctvPanel from './components/CctvPanel';
+import ScenePanel from './components/ScenePanel';
+import CockpitView from './components/CockpitView';
 import { RenderGovernorProvider } from './context/RenderGovernorContext';
 import { DataLayerProvider } from './context/DataLayerContext';
 import { useShareLink } from './hooks/useShareLink';
@@ -95,9 +99,54 @@ function AppInner() {
 
   // Display toggles
   const [hudVisible, setHudVisible] = useState(true);
+  const [hudLayout, setHudLayout] = useState('tactical');
   const [detectionEnabled, setDetectionEnabled] = useState(true);
+  const [detectionDensity, setDetectionDensity] = useState(75);
+  const [detectionFade, setDetectionFade] = useState(10);
   const [scopeEnabled, setScopeEnabled] = useState(true);
+  const [scopeFeather, setScopeFeather] = useState(80);
   const [celestialEnabled, setCelestialEnabled] = useState(true);
+  const [cleanView, setCleanView] = useState(false);
+  const [bloomEnabled, setBloomEnabled] = useState(false);
+  const [bloomIntensity, setBloomIntensity] = useState(50);
+  const [sharpenEnabled, setSharpenEnabled] = useState(false);
+  const [sharpenIntensity, setSharpenIntensity] = useState(50);
+  const [models3d, setModels3d] = useState(false);
+  const [models3dMode, setModels3dMode] = useState('proximity');
+
+  // Cockpit
+  const [cockpitEnabled, setCockpitEnabled] = useState(false);
+
+  // Voice
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+
+  // Dock panels
+  const [shadersOpen, setShadersOpen] = useState(false);
+  const [mapsOpen, setMapsOpen] = useState(false);
+
+  // Time (for HUD)
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const interval = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      switch (e.key.toLowerCase()) {
+        case 'h': setHudVisible(v => !v); break;
+        case 'd': setDetectionEnabled(v => !v); break;
+        case 'c': setCockpitEnabled(v => !v); break;
+        case 'escape':
+          if (cockpitEnabled) setCockpitEnabled(false);
+          break;
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [cockpitEnabled]);
 
   useShareLink({
     viewState,
@@ -127,27 +176,55 @@ function AppInner() {
   }
 
   return (
-    <div className="app">
-      <FirstRunExperience onComplete={() => {}} />
+    <div className={`app ${cleanView ? 'clean-view' : ''}`}>
+      <FirstRunExperience onComplete={(choice) => {
+        if (choice === 'contacts' || choice === 'space-missions' || choice === 'environmental') {
+          // Future: activate relevant feeds
+        }
+      }} />
       <ToastNotification />
 
       {/* Title Bar */}
-      <TitleBar visible={true} styleName={SHADER_LABELS[shaderMode]} />
+      <TitleBar visible={!cleanView} styleName={SHADER_LABELS[shaderMode]} />
 
       {/* Display Toggles (top-right) */}
       <DisplayToggles
         hudVisible={hudVisible}
         onToggleHud={() => setHudVisible(!hudVisible)}
+        hudLayout={hudLayout}
+        onHudLayoutChange={setHudLayout}
         detectionEnabled={detectionEnabled}
         onToggleDetection={() => setDetectionEnabled(!detectionEnabled)}
+        detectionDensity={detectionDensity}
+        onDetectionDensityChange={setDetectionDensity}
+        detectionFade={detectionFade}
+        onDetectionFadeChange={setDetectionFade}
+        models3d={models3d}
+        onToggle3d={() => setModels3d(!models3d)}
+        models3dMode={models3dMode}
+        onModels3dModeChange={setModels3dMode}
         scopeEnabled={scopeEnabled}
         onToggleScope={() => setScopeEnabled(!scopeEnabled)}
+        scopeFeather={scopeFeather}
+        onScopeFeatherChange={setScopeFeather}
         celestialEnabled={celestialEnabled}
         onToggleCelestial={() => setCelestialEnabled(!celestialEnabled)}
+        cleanView={cleanView}
+        onToggleCleanView={() => setCleanView(!cleanView)}
+        bloomEnabled={bloomEnabled}
+        onToggleBloom={() => setBloomEnabled(!bloomEnabled)}
+        bloomIntensity={bloomIntensity}
+        onBloomIntensityChange={setBloomIntensity}
+        sharpenEnabled={sharpenEnabled}
+        onToggleSharpen={() => setSharpenEnabled(!sharpenEnabled)}
+        sharpenIntensity={sharpenIntensity}
+        onSharpenIntensityChange={setSharpenIntensity}
       />
 
       {/* Left Panel Stack — Data Layers */}
       <DataPanel activeLayers={activeLayers} toggleLayer={toggleLayer} />
+      <CctvPanel />
+      <ScenePanel />
 
       {/* Full-screen Cesium Globe */}
       <div className="cesium-container">
@@ -164,15 +241,21 @@ function AppInner() {
       </div>
 
       {/* Intel HUD Overlay */}
-      <HUD viewState={viewState} feedCounts={feedCounts} shaderMode={shaderMode} visible={hudVisible} />
+      <HUD visible={hudVisible} layout={hudLayout} time={time} detectionEnabled={detectionEnabled} scopeEnabled={scopeEnabled} />
+
+      {/* Cockpit First-Person View */}
+      <CockpitView visible={cockpitEnabled} viewer={viewer} onExit={() => setCockpitEnabled(false)} />
+
+      {/* Right Context Rail */}
+      <RightContextRail viewer={viewer} />
 
       {/* Bottom Command Dock */}
       <CommandDock
         viewer={viewer}
-        shaderMode={shaderMode}
-        onShaderChange={setShaderMode}
-        mapStack={mapStack}
-        onMapStackChange={setMapStack}
+        voiceEnabled={voiceEnabled}
+        onToggleVoice={() => setVoiceEnabled(!voiceEnabled)}
+        onShadersToggle={() => setShadersOpen(!shadersOpen)}
+        onMapSourceToggle={() => setMapsOpen(!mapsOpen)}
       />
 
       {/* Scene Player (top-center) */}

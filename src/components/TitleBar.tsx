@@ -11,9 +11,9 @@ export default function TitleBar({ visible, styleName }: Props) {
       <div id="title-bar">
         <div className="title-glow" />
         <h1>
-          GOD'S <span className="title-accent">EYE</span>
+          GOD'S EYE <span className="title-accent">VIEW</span>
         </h1>
-        <div className="subtitle">GLOBAL INTELLIGENCE MONITORING SYSTEM</div>
+        <p className="subtitle">NO PLACE LEFT BEHIND</p>
       </div>
 
       <div id="style-indicator">

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, Component } from 'react';
 import CesiumViewer from './components/CesiumViewer';
 import DataPanel from './components/DataPanel';
 import HUD from './components/HUD';
@@ -48,48 +48,41 @@ export interface FeedCounts {
 }
 
 const SHADER_LABELS: Record<ShaderMode, string> = {
-  normal: 'NORMAL',
-  nvg: 'NVG',
-  flir: 'FLIR',
-  crt: 'CRT',
-  cel: 'ANIME',
-  classified: 'CLASSIFIED',
-  bw: 'B&W',
-  surveillance: 'SURVEILLANCE',
-  noir: 'NOIR',
-  snow: 'SNOW',
+  normal: 'NORMAL', nvg: 'NVG', flir: 'FLIR', crt: 'CRT', cel: 'ANIME',
+  classified: 'CLASSIFIED', bw: 'B&W', surveillance: 'SURVEILLANCE', noir: 'NOIR', snow: 'SNOW',
 };
+
+class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, background:'#0a0a0f', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'monospace', color:'#00d4ff', fontSize:14, letterSpacing:2 }}>
+          RENDER ERROR — CHECK CONSOLE
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function AppInner() {
   const [booting, setBooting] = useState(true);
+  const [bootFaded, setBootFaded] = useState(false);
   const [viewer, setViewer] = useState<Viewer | null>(null);
   const [shaderMode, setShaderMode] = useState<ShaderMode>('normal');
   const [viewState, setViewState] = useState<ViewState>({ lat: 0, lon: 0, alt: 10_000_000, heading: 0 });
   const [mapStack, setMapStack] = useState('photoreal');
   const [activeLayers, setActiveLayers] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {
-      aircraft: true,
-      satellites: false,
-      cctv: true,
-      traffic: false,
-      ships: false,
-      conflicts: false,
-      earthquakes: false,
-      fires: false,
-      eonet: true,
-      gdacs: true,
-      nws: false,
-      boundingBoxes: true,
-      rockets: true,
-      radio: false,
-      bikeshare: false,
-      military: false,
-      datacenters: true,
-      dams: true,
+      aircraft: true, satellites: false, cctv: true, traffic: false,
+      ships: false, conflicts: false, earthquakes: false, fires: false,
+      eonet: true, gdacs: true, nws: false, boundingBoxes: true,
+      rockets: true, radio: false, bikeshare: false, military: false,
+      datacenters: true, dams: true,
     };
-    for (const cfg of GIBS_LAYERS) {
-      initial[`gibs_${cfg.id}`] = cfg.id === GIBS_DEFAULT_LAYER_ID;
-    }
+    for (const cfg of GIBS_LAYERS) initial[`gibs_${cfg.id}`] = cfg.id === GIBS_DEFAULT_LAYER_ID;
     return initial;
   });
   const [feedCounts, setFeedCounts] = useState<FeedCounts>({
@@ -97,7 +90,6 @@ function AppInner() {
     eonet: 0, gdacs: 0, nws: 0, rockets: 0, radio: 0, bikeshare: 0, military: 0, datacenters: 0, dams: 0,
   });
 
-  // Display toggles
   const [hudVisible, setHudVisible] = useState(true);
   const [hudLayout, setHudLayout] = useState('tactical');
   const [detectionEnabled, setDetectionEnabled] = useState(true);
@@ -113,25 +105,17 @@ function AppInner() {
   const [sharpenIntensity, setSharpenIntensity] = useState(50);
   const [models3d, setModels3d] = useState(false);
   const [models3dMode, setModels3dMode] = useState('proximity');
-
-  // Cockpit
   const [cockpitEnabled, setCockpitEnabled] = useState(false);
-
-  // Voice
   const [voiceEnabled, setVoiceEnabled] = useState(false);
-
-  // Dock panels
   const [shadersOpen, setShadersOpen] = useState(false);
   const [mapsOpen, setMapsOpen] = useState(false);
-
-  // Time (for HUD)
   const [time, setTime] = useState(new Date());
+
   useEffect(() => {
-    const interval = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(interval);
+    const i = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(i);
   }, []);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -139,9 +123,7 @@ function AppInner() {
         case 'h': setHudVisible(v => !v); break;
         case 'd': setDetectionEnabled(v => !v); break;
         case 'c': setCockpitEnabled(v => !v); break;
-        case 'escape':
-          if (cockpitEnabled) setCockpitEnabled(false);
-          break;
+        case 'escape': if (cockpitEnabled) setCockpitEnabled(false); break;
       }
     };
     window.addEventListener('keydown', handler);
@@ -149,127 +131,104 @@ function AppInner() {
   }, [cockpitEnabled]);
 
   useShareLink({
-    viewState,
-    shaderMode,
-    activeLayers,
+    viewState, shaderMode, activeLayers,
     onRestoreViewState: (s) => setViewState({ lat: s.lat, lon: s.lon, alt: s.alt, heading: s.heading }),
     onRestoreShader: (m) => setShaderMode(m),
     onRestoreLayers: (l) => setActiveLayers(l),
   });
 
-  const handleViewerReady = useCallback((v: Viewer) => {
-    setViewer(v);
-  }, []);
-
+  const handleViewerReady = useCallback((v: Viewer) => setViewer(v), []);
   const toggleLayer = useCallback((layer: string) => {
     setActiveLayers(prev => ({ ...prev, [layer]: !prev[layer] }));
   }, []);
-
   const updateFeedCount = useCallback((key: keyof FeedCounts, count: number) => {
     setFeedCounts(prev => ({ ...prev, [key]: count }));
   }, []);
 
   const { scenes, playback, startScene, stopScene } = useScenePlayer({ viewer });
 
-  if (booting) {
-    return <BootSequence onComplete={() => setBooting(false)} />;
-  }
+  const handleBootComplete = useCallback(() => {
+    setBooting(false);
+    // Let the #loading-screen fade out via CSS, then remove from DOM
+    setTimeout(() => setBootFaded(true), 900);
+  }, []);
 
   return (
     <div className={`app ${cleanView ? 'clean-view' : ''}`}>
-      <FirstRunExperience onComplete={(choice) => {
-        if (choice === 'contacts' || choice === 'space-missions' || choice === 'environmental') {
-          // Future: activate relevant feeds
-        }
-      }} />
-      <ToastNotification />
-
-      {/* Title Bar */}
-      <TitleBar visible={!cleanView} styleName={SHADER_LABELS[shaderMode]} />
-
-      {/* Display Toggles (top-right) */}
-      <DisplayToggles
-        hudVisible={hudVisible}
-        onToggleHud={() => setHudVisible(!hudVisible)}
-        hudLayout={hudLayout}
-        onHudLayoutChange={setHudLayout}
-        detectionEnabled={detectionEnabled}
-        onToggleDetection={() => setDetectionEnabled(!detectionEnabled)}
-        detectionDensity={detectionDensity}
-        onDetectionDensityChange={setDetectionDensity}
-        detectionFade={detectionFade}
-        onDetectionFadeChange={setDetectionFade}
-        models3d={models3d}
-        onToggle3d={() => setModels3d(!models3d)}
-        models3dMode={models3dMode}
-        onModels3dModeChange={setModels3dMode}
-        scopeEnabled={scopeEnabled}
-        onToggleScope={() => setScopeEnabled(!scopeEnabled)}
-        scopeFeather={scopeFeather}
-        onScopeFeatherChange={setScopeFeather}
-        celestialEnabled={celestialEnabled}
-        onToggleCelestial={() => setCelestialEnabled(!celestialEnabled)}
-        cleanView={cleanView}
-        onToggleCleanView={() => setCleanView(!cleanView)}
-        bloomEnabled={bloomEnabled}
-        onToggleBloom={() => setBloomEnabled(!bloomEnabled)}
-        bloomIntensity={bloomIntensity}
-        onBloomIntensityChange={setBloomIntensity}
-        sharpenEnabled={sharpenEnabled}
-        onToggleSharpen={() => setSharpenEnabled(!sharpenEnabled)}
-        sharpenIntensity={sharpenIntensity}
-        onSharpenIntensityChange={setSharpenIntensity}
-      />
-
-      {/* Left Panel Stack — Data Layers */}
-      <DataPanel activeLayers={activeLayers} toggleLayer={toggleLayer} />
-      <CctvPanel />
-      <ScenePanel />
-
-      {/* Full-screen Cesium Globe */}
-      <div className="cesium-container">
-        <CesiumViewer
-          onReady={handleViewerReady}
-          shaderMode={shaderMode}
-          activeLayers={activeLayers}
-          onViewStateChange={setViewState}
-          onFeedCountUpdate={updateFeedCount}
-          scopeEnabled={scopeEnabled}
-          celestialEnabled={celestialEnabled}
-          detectionEnabled={detectionEnabled}
-        />
+      {/* Loading overlay — stays mounted for CSS fade transition */}
+      <div id="loading-screen" className={booting ? '' : 'hidden'}>
+        <div className="loader-content">
+          <h2>GOD'S EYE <span className="title-accent">VIEW</span></h2>
+          <p className="subtitle">NO PLACE LEFT BEHIND</p>
+        </div>
       </div>
 
-      {/* Intel HUD Overlay */}
-      <HUD visible={hudVisible} layout={hudLayout} time={time} detectionEnabled={detectionEnabled} scopeEnabled={scopeEnabled} />
+      {/* Boot progress bar — unmounts when boot completes */}
+      {booting && <BootSequence onComplete={handleBootComplete} />}
 
-      {/* Cockpit First-Person View */}
-      <CockpitView visible={cockpitEnabled} viewer={viewer} onExit={() => setCockpitEnabled(false)} />
+      <ErrorBoundary>
+        <FirstRunExperience onComplete={() => {}} />
+        <ToastNotification />
+        <TitleBar visible={!cleanView} styleName={SHADER_LABELS[shaderMode]} />
 
-      {/* Right Context Rail */}
-      <RightContextRail viewer={viewer} />
+        <DisplayToggles
+          hudVisible={hudVisible} onToggleHud={() => setHudVisible(!hudVisible)}
+          hudLayout={hudLayout} onHudLayoutChange={setHudLayout}
+          detectionEnabled={detectionEnabled} onToggleDetection={() => setDetectionEnabled(!detectionEnabled)}
+          detectionDensity={detectionDensity} onDetectionDensityChange={setDetectionDensity}
+          detectionFade={detectionFade} onDetectionFadeChange={setDetectionFade}
+          models3d={models3d} onToggle3d={() => setModels3d(!models3d)}
+          models3dMode={models3dMode} onModels3dModeChange={setModels3dMode}
+          scopeEnabled={scopeEnabled} onToggleScope={() => setScopeEnabled(!scopeEnabled)}
+          scopeFeather={scopeFeather} onScopeFeatherChange={setScopeFeather}
+          celestialEnabled={celestialEnabled} onToggleCelestial={() => setCelestialEnabled(!celestialEnabled)}
+          cleanView={cleanView} onToggleCleanView={() => setCleanView(!cleanView)}
+          bloomEnabled={bloomEnabled} onToggleBloom={() => setBloomEnabled(!bloomEnabled)}
+          bloomIntensity={bloomIntensity} onBloomIntensityChange={setBloomIntensity}
+          sharpenEnabled={sharpenEnabled} onToggleSharpen={() => setSharpenEnabled(!sharpenEnabled)}
+          sharpenIntensity={sharpenIntensity} onSharpenIntensityChange={setSharpenIntensity}
+        />
 
-      {/* Bottom Command Dock */}
-      <CommandDock
-        viewer={viewer}
-        voiceEnabled={voiceEnabled}
-        onToggleVoice={() => setVoiceEnabled(!voiceEnabled)}
-        onShadersToggle={() => setShadersOpen(!shadersOpen)}
-        onMapSourceToggle={() => setMapsOpen(!mapsOpen)}
-      />
+        <DataPanel activeLayers={activeLayers} toggleLayer={toggleLayer} />
+        <CctvPanel />
+        <ScenePanel />
 
-      {/* Scene Player (top-center) */}
-      {scenes.length > 0 && (
-        <div id="top-center-actions">
-          {playback.running ? (
-            <button onClick={stopScene} title="Stop scene">⏹</button>
-          ) : (
-            scenes.map(s => (
-              <button key={s.id} onClick={() => startScene(s.id)} title={`Play: ${s.title}`}>▶</button>
-            ))
-          )}
+        <div className="cesium-container">
+          <CesiumViewer
+            onReady={handleViewerReady}
+            shaderMode={shaderMode}
+            activeLayers={activeLayers}
+            onViewStateChange={setViewState}
+            onFeedCountUpdate={updateFeedCount}
+            scopeEnabled={scopeEnabled}
+            celestialEnabled={celestialEnabled}
+            detectionEnabled={detectionEnabled}
+          />
         </div>
-      )}
+
+        <HUD visible={hudVisible} layout={hudLayout} time={time} detectionEnabled={detectionEnabled} scopeEnabled={scopeEnabled} />
+        <CockpitView visible={cockpitEnabled} viewer={viewer} onExit={() => setCockpitEnabled(false)} />
+        <RightContextRail viewer={viewer} />
+        <CommandDock
+          viewer={viewer}
+          voiceEnabled={voiceEnabled}
+          onToggleVoice={() => setVoiceEnabled(!voiceEnabled)}
+          onShadersToggle={() => setShadersOpen(!shadersOpen)}
+          onMapSourceToggle={() => setMapsOpen(!mapsOpen)}
+        />
+
+        {scenes.length > 0 && (
+          <div id="top-center-actions">
+            {playback.running ? (
+              <button onClick={stopScene} title="Stop scene">⏹</button>
+            ) : (
+              scenes.map(s => (
+                <button key={s.id} onClick={() => startScene(s.id)} title={`Play: ${s.title}`}>▶</button>
+              ))
+            )}
+          </div>
+        )}
+      </ErrorBoundary>
     </div>
   );
 }

@@ -27,20 +27,28 @@ export default function BootSequence({ onComplete }: Props) {
 
     timers.push(setTimeout(onComplete, 3000));
     return () => timers.forEach(clearTimeout);
-  }, [onComplete]);
+  }, []); // stable — onComplete is wrapped in useCallback in parent
 
+  // This component is only mounted while booting=true.
+  // The parent renders #loading-screen separately for the fade-out.
   return (
-    <div id="loading-screen">
-      <div className="loader-content">
-        <h2>
-          GOD'S EYE <span className="title-accent">VIEW</span>
-        </h2>
-        <div className="loader-status">{status}</div>
+    <div style={{ position:'fixed', inset:0, zIndex:1000, pointerEvents:'none' }}>
+      <div style={{
+        position:'absolute', bottom:'42%', left:'50%', transform:'translateX(-50%)',
+        textAlign:'center', pointerEvents:'none',
+      }}>
         <div style={{
-          marginTop: 16, height: 2, background: 'rgba(255,255,255,0.06)',
-          borderRadius: 1, width: 300, maxWidth: '80vw', margin: '16px auto 0', overflow: 'hidden',
+          fontFamily:'var(--font-mono)', fontSize:11, letterSpacing:2,
+          color:'var(--text-dim)', marginBottom:8,
+        }}>{status}</div>
+        <div style={{
+          height:2, background:'rgba(255,255,255,0.06)',
+          borderRadius:1, width:300, maxWidth:'80vw', overflow:'hidden',
         }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: 'var(--accent)', transition: 'width 0.3s ease' }} />
+          <div style={{
+            height:'100%', width:`${progress}%`,
+            background:'var(--accent)', transition:'width 0.3s ease',
+          }} />
         </div>
       </div>
     </div>

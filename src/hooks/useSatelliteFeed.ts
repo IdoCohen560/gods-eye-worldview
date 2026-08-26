@@ -82,7 +82,7 @@ export function useSatelliteFeed({ viewer, active, onCountUpdate }: UseSatellite
             },
             label: {
               text: sat.name,
-              font: `${sat.category === 'station' ? 11 : 9}px Share Tech Mono`,
+              font: `${sat.category === 'station' ? 11 : 9}px JetBrains Mono`,
               fillColor: color,
               pixelOffset: new Cesium.Cartesian2(size + 4, 0),
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(

@@ -47,7 +47,7 @@ export function useNWSFeed({ viewer, active, onCountUpdate }: UseNWSFeedOptions)
             point: { pixelSize: 9, color, outlineColor: Cesium.Color.BLACK, outlineWidth: 1 },
             label: {
               text: `${a.event} — ${a.area}`,
-              font: '10px Share Tech Mono',
+              font: '10px JetBrains Mono',
               fillColor: color,
               pixelOffset: new Cesium.Cartesian2(12, 0),
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 3_000_000),

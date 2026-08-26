@@ -42,7 +42,7 @@ export function useCCTVFeed({ viewer, active, onCountUpdate }: UseCCTVFeedOption
             distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 2_000_000),
           },
           label: {
-            text: cam.name, font: '9px Share Tech Mono',
+            text: cam.name, font: '9px JetBrains Mono',
             fillColor: Cesium.Color.ORANGE,
             pixelOffset: new Cesium.Cartesian2(0, -16),
             distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 50_000),

@@ -63,7 +63,7 @@ export function useConflictFeed({ viewer, active, onCountUpdate }: UseConflictFe
             },
             label: {
               text: `${isExplosion ? '💥' : isBattle ? '⚔' : isProtest ? '✊' : '⚠'} ${ev.event_type}`,
-              font: '9px Share Tech Mono',
+              font: '9px JetBrains Mono',
               fillColor: color,
               pixelOffset: new Cesium.Cartesian2(size + 4, 0),
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 2_000_000),

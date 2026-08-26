@@ -44,7 +44,7 @@ export function useGDACSFeed({ viewer, active, onCountUpdate }: UseGDACSFeedOpti
             point: { pixelSize: 10, color, outlineColor: Cesium.Color.BLACK, outlineWidth: 1 },
             label: {
               text: `${ev.eventType} ${ev.alertLevel.toUpperCase()}: ${ev.name}`,
-              font: '10px Share Tech Mono',
+              font: '10px JetBrains Mono',
               fillColor: color,
               pixelOffset: new Cesium.Cartesian2(12, 0),
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 5_000_000),

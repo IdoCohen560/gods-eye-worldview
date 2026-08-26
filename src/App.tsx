@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
 import CesiumViewer from './components/CesiumViewer';
-import Sidebar from './components/Sidebar';
+import DataPanel from './components/DataPanel';
 import HUD from './components/HUD';
-import ShaderSelector from './components/ShaderSelector';
-import CommandBar from './components/CommandBar';
+import CommandDock from './components/CommandDock';
 import BootSequence from './components/BootSequence';
 import FirstRunExperience from './components/FirstRunExperience';
 import ToastNotification from './components/ToastNotification';
-import MapStackSelector from './components/MapStackSelector';
+import TitleBar from './components/TitleBar';
+import DisplayToggles from './components/DisplayToggles';
 import { RenderGovernorProvider } from './context/RenderGovernorContext';
 import { DataLayerProvider } from './context/DataLayerContext';
 import { useShareLink } from './hooks/useShareLink';
@@ -43,16 +43,17 @@ export interface FeedCounts {
   dams: number;
 }
 
-const sceneBtnStyle: React.CSSProperties = {
-  padding: '4px 8px',
-  background: 'rgba(0, 0, 0, 0.7)',
-  border: '1px solid rgba(0, 255, 136, 0.3)',
-  color: 'var(--accent-green, #00ff88)',
-  cursor: 'pointer',
-  fontFamily: 'monospace',
-  fontSize: 9,
-  borderRadius: 2,
-  whiteSpace: 'nowrap',
+const SHADER_LABELS: Record<ShaderMode, string> = {
+  normal: 'NORMAL',
+  nvg: 'NVG',
+  flir: 'FLIR',
+  crt: 'CRT',
+  cel: 'ANIME',
+  classified: 'CLASSIFIED',
+  bw: 'B&W',
+  surveillance: 'SURVEILLANCE',
+  noir: 'NOIR',
+  snow: 'SNOW',
 };
 
 function AppInner() {
@@ -92,7 +93,12 @@ function AppInner() {
     eonet: 0, gdacs: 0, nws: 0, rockets: 0, radio: 0, bikeshare: 0, military: 0, datacenters: 0, dams: 0,
   });
 
-  // Share link integration
+  // Display toggles
+  const [hudVisible, setHudVisible] = useState(true);
+  const [detectionEnabled, setDetectionEnabled] = useState(true);
+  const [scopeEnabled, setScopeEnabled] = useState(true);
+  const [celestialEnabled, setCelestialEnabled] = useState(true);
+
   useShareLink({
     viewState,
     shaderMode,
@@ -123,43 +129,64 @@ function AppInner() {
   return (
     <div className="app">
       <FirstRunExperience onComplete={() => {}} />
-      <CommandBar viewer={viewer} />
       <ToastNotification />
-      <div className="main-container">
-        <Sidebar activeLayers={activeLayers} toggleLayer={toggleLayer} />
-        <div className="viewer-container">
-          <CesiumViewer
-            onReady={handleViewerReady}
-            shaderMode={shaderMode}
-            activeLayers={activeLayers}
-            onViewStateChange={setViewState}
-            onFeedCountUpdate={updateFeedCount}
-          />
-          <HUD viewState={viewState} feedCounts={feedCounts} shaderMode={shaderMode} />
-          <ShaderSelector current={shaderMode} onChange={setShaderMode} />
-          <MapStackSelector currentStack={mapStack} onSwitch={setMapStack} />
 
-          {/* Scene Player */}
-          {scenes.length > 0 && (
-            <div style={{
-              position: 'absolute', top: 12, right: 12, zIndex: 10,
-              display: 'flex', gap: 4, flexDirection: 'column',
-            }}>
-              {playback.running ? (
-                <button onClick={stopScene} style={sceneBtnStyle}>
-                  STOP SCENE
-                </button>
-              ) : (
-                scenes.map(s => (
-                  <button key={s.id} onClick={() => startScene(s.id)} style={sceneBtnStyle}>
-                    PLAY: {s.title}
-                  </button>
-                ))
-              )}
-            </div>
+      {/* Title Bar */}
+      <TitleBar visible={true} styleName={SHADER_LABELS[shaderMode]} />
+
+      {/* Display Toggles (top-right) */}
+      <DisplayToggles
+        hudVisible={hudVisible}
+        onToggleHud={() => setHudVisible(!hudVisible)}
+        detectionEnabled={detectionEnabled}
+        onToggleDetection={() => setDetectionEnabled(!detectionEnabled)}
+        scopeEnabled={scopeEnabled}
+        onToggleScope={() => setScopeEnabled(!scopeEnabled)}
+        celestialEnabled={celestialEnabled}
+        onToggleCelestial={() => setCelestialEnabled(!celestialEnabled)}
+      />
+
+      {/* Left Panel Stack — Data Layers */}
+      <DataPanel activeLayers={activeLayers} toggleLayer={toggleLayer} />
+
+      {/* Full-screen Cesium Globe */}
+      <div className="cesium-container">
+        <CesiumViewer
+          onReady={handleViewerReady}
+          shaderMode={shaderMode}
+          activeLayers={activeLayers}
+          onViewStateChange={setViewState}
+          onFeedCountUpdate={updateFeedCount}
+          scopeEnabled={scopeEnabled}
+          celestialEnabled={celestialEnabled}
+          detectionEnabled={detectionEnabled}
+        />
+      </div>
+
+      {/* Intel HUD Overlay */}
+      <HUD viewState={viewState} feedCounts={feedCounts} shaderMode={shaderMode} visible={hudVisible} />
+
+      {/* Bottom Command Dock */}
+      <CommandDock
+        viewer={viewer}
+        shaderMode={shaderMode}
+        onShaderChange={setShaderMode}
+        mapStack={mapStack}
+        onMapStackChange={setMapStack}
+      />
+
+      {/* Scene Player (top-center) */}
+      {scenes.length > 0 && (
+        <div id="top-center-actions">
+          {playback.running ? (
+            <button onClick={stopScene} title="Stop scene">⏹</button>
+          ) : (
+            scenes.map(s => (
+              <button key={s.id} onClick={() => startScene(s.id)} title={`Play: ${s.title}`}>▶</button>
+            ))
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 }

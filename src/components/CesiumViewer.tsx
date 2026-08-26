@@ -26,7 +26,6 @@ import DetectionOverlay from './DetectionOverlay';
 import ScopeMask from './ScopeMask';
 import CelestialRing from './CelestialRing';
 import WorldOverlay from './WorldOverlay';
-import { useCameraModes } from '../hooks/useCameraModes';
 import type { Camera } from '../feeds/CCTVFeed';
 import type { AircraftState } from '../feeds/AircraftFeed';
 import type { ShaderMode, ViewState, FeedCounts } from '../App';
@@ -37,9 +36,12 @@ interface Props {
   activeLayers: Record<string, boolean>;
   onViewStateChange: (state: ViewState) => void;
   onFeedCountUpdate: (key: keyof FeedCounts, count: number) => void;
+  scopeEnabled: boolean;
+  celestialEnabled: boolean;
+  detectionEnabled: boolean;
 }
 
-export default function CesiumViewer({ onReady, shaderMode, activeLayers, onViewStateChange, onFeedCountUpdate }: Props) {
+export default function CesiumViewer({ onReady, shaderMode, activeLayers, onViewStateChange, onFeedCountUpdate, scopeEnabled, celestialEnabled, detectionEnabled }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
   const prevShaderRef = useRef<ShaderMode>('normal');
@@ -104,20 +106,12 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   useLocalDataFeed({ viewer, enabled: activeLayers.dams, type: 'dams' });
   useFIRMSFeed({ viewer, enabled: activeLayers.fires });
 
-  // Camera modes
-  const { flyToPreset, presets } = useCameraModes({ viewer });
-
-  // World overlay entries (placeholder - could be populated from selected entities)
-  const overlayEntries: { id: string; worldPosition: Cesium.Cartesian3; text: string; color: string }[] = [];
-
   // ======= INIT VIEWER =======
   useEffect(() => {
     if (!containerRef.current || viewerRef.current) return;
 
-    // Guaranteed base imagery so the globe is never blank, even without an Ion token
-    // or when all GIBS layers are toggled off. OSM is tokenless and global.
     const baseImagery = CESIUM_ION_TOKEN
-      ? undefined // Let Cesium pick Ion default (Bing)
+      ? undefined
       : new Cesium.OpenStreetMapImageryProvider({ url: 'https://tile.openstreetmap.org/' });
 
     const v = new Cesium.Viewer(containerRef.current, {
@@ -228,7 +222,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     prevShaderRef.current = shaderMode;
   }, [shaderMode]);
 
-  // ======= GIBS LAYERS (data-driven from catalog) =======
+  // ======= GIBS LAYERS =======
   useEffect(() => {
     const v = viewerRef.current;
     if (!v) return;
@@ -239,7 +233,6 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
       if (isActive && !existing) {
         const provider = createGIBSLayer(cfg);
         const layer = v.imageryLayers.addImageryProvider(provider);
-        // Basemap categories render fully opaque; overlays are translucent.
         layer.alpha = cfg.category === 'Basemap' ? 1.0 : 0.75;
         gibsIndividualRef.current.set(cfg.id, layer);
       } else if (!isActive && existing) {
@@ -251,7 +244,7 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
 
   // ======= DETECTION OVERLAY =======
   useEffect(() => {
-    if (!activeLayers.boundingBoxes) { setDetectionEntities([]); return; }
+    if (!detectionEnabled || !activeLayers.boundingBoxes) { setDetectionEntities([]); return; }
 
     const interval = setInterval(() => {
       const entities: any[] = [];
@@ -296,20 +289,20 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
     }, 500);
 
     return () => clearInterval(interval);
-  }, [activeLayers.boundingBoxes, activeLayers.aircraft, activeLayers.satellites, activeLayers.earthquakes]);
+  }, [detectionEnabled, activeLayers.boundingBoxes, activeLayers.aircraft, activeLayers.satellites, activeLayers.earthquakes]);
 
   return (
     <>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 
-      <ScopeMask enabled={true} altitude={altitude} />
-      <CelestialRing enabled={true} viewer={viewerRef.current} />
-      <WorldOverlay viewer={viewerRef.current} entries={overlayEntries} />
+      <ScopeMask enabled={scopeEnabled} altitude={altitude} />
+      <CelestialRing enabled={celestialEnabled} viewer={viewerRef.current} />
+      <WorldOverlay viewer={viewerRef.current} entries={[]} />
 
       <DetectionOverlay
         viewer={viewerRef.current}
         entities={detectionEntities}
-        enabled={activeLayers.boundingBoxes ?? false}
+        enabled={detectionEnabled && (activeLayers.boundingBoxes ?? false)}
       />
 
       {selectedAircraft && (
@@ -350,7 +343,7 @@ function CameraPanel({ camera, onClose }: { camera: Camera; onClose: () => void 
   return (
     <div className="video-panel">
       <div className="video-header">
-        <span style={{ color: 'var(--accent-green)', fontSize: 11 }}>{camera.name} — {label}</span>
+        <span style={{ color: 'var(--accent)', fontSize: 11 }}>{camera.name} — {label}</span>
         <button className="close-btn" onClick={onClose}>X</button>
       </div>
       {error ? (
@@ -360,10 +353,10 @@ function CameraPanel({ camera, onClose }: { camera: Camera; onClose: () => void 
       ) : (
         <img src={imgSrc} alt={camera.name} style={{ width: '100%', display: 'block' }} onError={() => setError(true)} />
       )}
-      <div style={{ padding: '4px 8px', fontSize: 9, color: 'var(--text-dim)', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ padding: '4px 8px', fontSize: 9, color: 'var(--text-dim)', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between' }}>
         <span>LIVE — REFRESH 5s</span>
         {camera.player ? (
-          <a href={camera.player} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-green)' }}>OPEN LIVE PLAYER</a>
+          <a href={camera.player} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>OPEN LIVE PLAYER</a>
         ) : (
           <span>{(camera.type || 'WEBCAM').toUpperCase()}</span>
         )}

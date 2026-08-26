@@ -39,41 +39,56 @@ export default function BootSequence({ onComplete }: Props) {
   }, [onComplete]);
 
   return (
-    <div className="loading-overlay">
-      <div style={{ width: 500, maxWidth: '90vw' }}>
-        <div style={{ color: 'var(--accent-green)', fontSize: 18, letterSpacing: 4, marginBottom: 24 }}>
-          GOD'S EYE
+    <div id="loading-screen">
+      <div className="loader-content">
+        <div style={{
+          fontSize: 28,
+          fontWeight: 600,
+          fontFamily: 'var(--font-mono)',
+          letterSpacing: 8,
+          color: 'var(--text-primary)',
+          marginBottom: 24,
+        }}>
+          GOD'S <span style={{ color: 'var(--accent)', fontWeight: 300 }}>EYE</span>
         </div>
-        {BOOT_LINES.slice(0, visibleLines).map((line, i) => (
-          <div key={i} style={{
-            color: line.text.startsWith('[OK]')
-              ? 'var(--accent-green)'
-              : line.text === 'ALL SYSTEMS ONLINE'
-                ? '#fff'
-                : 'var(--text-dim)',
-            fontSize: 11,
-            fontFamily: 'var(--font-mono)',
-            marginBottom: 3,
-            letterSpacing: 1,
-          }}>
-            {line.text}
-          </div>
-        ))}
+
+        <div style={{ textAlign: 'left', width: 400, maxWidth: '90vw', margin: '0 auto' }}>
+          {BOOT_LINES.slice(0, visibleLines).map((line, i) => (
+            <div key={i} style={{
+              color: line.text.startsWith('[OK]')
+                ? 'var(--accent)'
+                : line.text === 'ALL SYSTEMS ONLINE'
+                  ? 'var(--text-primary)'
+                  : 'var(--text-dim)',
+              fontSize: 11,
+              fontFamily: 'var(--font-mono)',
+              marginBottom: 3,
+              letterSpacing: 1,
+            }}>
+              {line.text}
+            </div>
+          ))}
+        </div>
+
         <div style={{
           marginTop: 16,
           height: 2,
-          background: 'var(--border)',
+          background: 'rgba(255,255,255,0.06)',
           position: 'relative',
           overflow: 'hidden',
+          borderRadius: 1,
+          width: 400,
+          maxWidth: '90vw',
+          margin: '16px auto 0',
         }}>
           <div style={{
             height: '100%',
             width: `${progress}%`,
-            background: 'var(--accent-green)',
+            background: 'var(--accent)',
             transition: 'width 0.3s ease',
           }} />
         </div>
-        <div style={{ color: 'var(--text-dim)', fontSize: 10, marginTop: 6, textAlign: 'right' }}>
+        <div style={{ color: 'var(--text-dim)', fontSize: 10, marginTop: 6, fontFamily: 'var(--font-mono)', letterSpacing: 1 }}>
           {progress}%
         </div>
       </div>

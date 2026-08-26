@@ -47,7 +47,7 @@ export function useShipFeed({ viewer, active, onCountUpdate }: UseShipFeedOption
             },
             label: {
               text: ship.name,
-              font: '9px Share Tech Mono',
+              font: '9px JetBrains Mono',
               fillColor: color,
               pixelOffset: new Cesium.Cartesian2(8, 0),
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500_000),

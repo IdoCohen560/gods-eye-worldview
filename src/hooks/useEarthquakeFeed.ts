@@ -51,7 +51,7 @@ export function useEarthquakeFeed({ viewer, active, onCountUpdate }: UseEarthqua
             },
             label: {
               text: `M${q.magnitude.toFixed(1)} ${q.place}`,
-              font: '10px Share Tech Mono',
+              font: '10px JetBrains Mono',
               fillColor: color,
               pixelOffset: new Cesium.Cartesian2(size + 4, 0),
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 5_000_000),

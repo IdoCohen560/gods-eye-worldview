@@ -21,7 +21,7 @@ function timeAgo(ts: number): string {
 
 function dotColor(status: FeedStatus['status']): string {
   switch (status) {
-    case 'online': return 'var(--accent-green)';
+    case 'online': return 'var(--accent)';
     case 'degraded': return 'var(--accent-amber)';
     case 'offline': return 'var(--accent-red)';
     case 'loading': return 'var(--text-dim)';

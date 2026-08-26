@@ -78,7 +78,7 @@ export function useAircraftFeed({ viewer, active, onCountUpdate }: UseAircraftFe
                 },
                 label: {
                   text: ac.callsign?.trim() || ac.icao24,
-                  font: '10px Share Tech Mono',
+                  font: '10px JetBrains Mono',
                   fillColor: Cesium.Color.fromAlpha(Cesium.Color.WHITE, 0.8),
                   pixelOffset: new Cesium.Cartesian2(0, -14),
                   distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500_000),
@@ -124,7 +124,7 @@ export function useAircraftFeed({ viewer, active, onCountUpdate }: UseAircraftFe
               },
               label: {
                 text: ac.callsign?.trim() || ac.icao24,
-                font: '10px Share Tech Mono',
+                font: '10px JetBrains Mono',
                 fillColor: Cesium.Color.fromAlpha(Cesium.Color.WHITE, 0.8),
                 pixelOffset: new Cesium.Cartesian2(0, -14),
                 distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 500_000),

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import FeedStatusBar from './FeedStatusBar';
 import { GIBS_LAYERS } from '../config/gibs-layers';
 
@@ -71,58 +71,63 @@ function buildGibsGroups(): LayerGroup[] {
   }));
 }
 
-export default function Sidebar({ activeLayers, toggleLayer }: Props) {
+export default function DataPanel({ activeLayers, toggleLayer }: Props) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const groups = useMemo<LayerGroup[]>(() => [...STATIC_GROUPS, ...buildGibsGroups()], []);
+  const groups = [...STATIC_GROUPS, ...buildGibsGroups()];
 
   const toggle = (title: string) => {
     setCollapsed(prev => ({ ...prev, [title]: !prev[title] }));
   };
 
   return (
-    <div className="sidebar">
-      {groups.map(group => (
-        <div key={group.title}>
-          <h3 onClick={() => toggle(group.title)} style={{ cursor: 'pointer', userSelect: 'none' }}>
-            <span style={{ fontSize: 8, marginRight: 6 }}>
-              {collapsed[group.title] ? '▶' : '▼'}
-            </span>
-            {group.title}
-          </h3>
-          {!collapsed[group.title] && group.layers.map(layer => (
-            <label key={layer.key}>
-              <input
-                type="checkbox"
-                checked={activeLayers[layer.key] ?? false}
-                onChange={() => toggleLayer(layer.key)}
-              />
-              {layer.label}
-              {layer.live && (
-                <span style={{
-                  marginLeft: 'auto',
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  background: activeLayers[layer.key] ? 'var(--accent-green)' : 'var(--text-dim)',
-                  display: 'inline-block',
-                  flexShrink: 0,
-                }} />
-              )}
-            </label>
-          ))}
+    <div id="left-panel-stack">
+      <div id="data-panel">
+        <div className="panel-glow" />
+        <div className="data-panel-inner">
+          <div className="panel-header">
+            <span className="panel-title">DATA LAYERS</span>
+            <span className="panel-divider" />
+          </div>
+          <div className="data-toggle-list">
+            {groups.map(group => (
+              <div key={group.title}>
+                <button
+                  className="panel-collapse-btn"
+                  onClick={() => toggle(group.title)}
+                  style={{ width: '100%', textAlign: 'left', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <span style={{ fontSize: 8 }}>{collapsed[group.title] ? '▶' : '▼'}</span>
+                  <span className="panel-title" style={{ fontSize: 9, letterSpacing: 2 }}>{group.title}</span>
+                </button>
+                {!collapsed[group.title] && group.layers.map(layer => (
+                  <button
+                    key={layer.key}
+                    className={`data-toggle-btn ${activeLayers[layer.key] ? 'active' : ''}`}
+                    onClick={() => toggleLayer(layer.key)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left', marginBottom: 2, padding: '5px 10px' }}
+                  >
+                    <span className={`feed-dot ${activeLayers[layer.key] ? 'live' : 'off'}`} />
+                    <span style={{ flex: 1, fontSize: 9, letterSpacing: 1 }}>{layer.label}</span>
+                    {layer.live && (
+                      <span style={{ fontSize: 7, color: 'var(--text-dim)', letterSpacing: 0.5 }}>LIVE</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          <FeedStatusBar />
+
+          <div style={{ marginTop: 8, padding: '6px 4px', fontSize: 8, color: 'var(--text-dim)', lineHeight: 1.8, fontFamily: 'var(--font-mono)', letterSpacing: 1 }}>
+            [1-7] Shader modes<br />
+            [W/A/S/D] Move around<br />
+            [+] Zoom in  [-] Zoom out<br />
+            Click entity for details<br />
+            Click camera for live feed
+          </div>
         </div>
-      ))}
-
-      <h3>SHORTCUTS</h3>
-      <div style={{ fontSize: 10, color: 'var(--text-dim)', padding: '0 8px', lineHeight: 1.8 }}>
-        [1-8] Shader modes<br />
-        [W/A/S/D] Move around<br />
-        [+] Zoom in  [-] Zoom out<br />
-        Click entity for details<br />
-        Click camera for live feed
       </div>
-
-      <FeedStatusBar />
     </div>
   );
 }

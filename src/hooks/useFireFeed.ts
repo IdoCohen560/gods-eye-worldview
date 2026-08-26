@@ -44,7 +44,7 @@ export function useFireFeed({ viewer, active, onCountUpdate }: UseFireFeedOption
             },
             label: {
               text: `🔥 FRP:${h.frp.toFixed(0)}`,
-              font: '9px Share Tech Mono',
+              font: '9px JetBrains Mono',
               fillColor: Cesium.Color.ORANGE,
               pixelOffset: new Cesium.Cartesian2(size + 4, 0),
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 1_000_000),

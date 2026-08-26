@@ -5,9 +5,10 @@ interface Props {
   viewState: ViewState;
   feedCounts: FeedCounts;
   shaderMode: ShaderMode;
+  visible: boolean;
 }
 
-export default function HUD({ viewState, feedCounts, shaderMode }: Props) {
+export default function HUD({ viewState, feedCounts, shaderMode, visible }: Props) {
   const [time, setTime] = useState(new Date());
   const [recBlink, setRecBlink] = useState(true);
 
@@ -18,6 +19,8 @@ export default function HUD({ viewState, feedCounts, shaderMode }: Props) {
     }, 500);
     return () => clearInterval(interval);
   }, []);
+
+  if (!visible) return null;
 
   const formatCoord = (val: number, pos: string, neg: string) => {
     const dir = val >= 0 ? pos : neg;
@@ -31,67 +34,83 @@ export default function HUD({ viewState, feedCounts, shaderMode }: Props) {
   };
 
   const utc = time.toISOString().replace('T', ' ').slice(0, 23) + ' UTC';
+  const totalEntities = feedCounts.aircraft + feedCounts.satellites + feedCounts.ships + feedCounts.cameras;
 
   return (
-    <div className="hud">
+    <div id="intel-hud">
       {/* Scanning line */}
       <div className="hud-scanline" />
 
-      {/* Crosshair */}
-      <div className="hud-crosshair" />
-
-      {/* REC indicator */}
-      <div className="hud-rec" style={{ opacity: recBlink ? 1 : 0.3 }}>
-        <span className="rec-dot" /> REC
-      </div>
-
-      {/* Compass */}
-      <div className="hud-compass">
-        ▲ HDG {viewState.heading.toFixed(1)}°
-      </div>
-
-      {/* Coordinates */}
-      <div className="hud-bottom-left">
-        <div>{formatCoord(viewState.lat, 'N', 'S')}</div>
-        <div>{formatCoord(viewState.lon, 'E', 'W')}</div>
-        <div>ALT {formatAlt(viewState.alt)}</div>
-        <div style={{ marginTop: 4, color: 'var(--text-dim)', fontSize: 10 }}>
-          MODE: {shaderMode.toUpperCase()}
+      {/* Top-left corner */}
+      <div className="hud-corner hud-top-left">
+        <span className="hud-bracket">[</span>
+        <div className="hud-content">
+          <div>GOD'S EYE {shaderMode.toUpperCase()}</div>
+          <div style={{ fontSize: 10, marginTop: 2 }}>
+            {formatCoord(viewState.lat, 'N', 'S')} — {formatCoord(viewState.lon, 'E', 'W')}
+          </div>
+          <div style={{ fontSize: 10 }}>ALT {formatAlt(viewState.alt)}</div>
         </div>
       </div>
 
-      {/* Time */}
-      <div className="hud-bottom-right">
-        <div>{utc}</div>
-        <div style={{ fontSize: 10, color: 'var(--text-dim)' }}>
-          {time.toLocaleTimeString()} LOCAL
+      {/* Top-right corner */}
+      <div className="hud-corner hud-top-right">
+        <div className="hud-content" style={{ textAlign: 'right' }}>
+          <div style={{ opacity: 0.5, fontSize: 9, letterSpacing: 1.5 }}>AIR {feedCounts.aircraft} | SAT {feedCounts.satellites} | SHIP {feedCounts.ships} | CAM {feedCounts.cameras}</div>
+          <div style={{ marginTop: 2, fontSize: 10 }}>
+            {feedCounts.conflicts > 0 && <span style={{ color: 'var(--accent-red)' }}>⚠ CONFLICT {feedCounts.conflicts} </span>}
+            {feedCounts.earthquakes > 0 && <span style={{ color: 'var(--accent-amber)' }}>◆ QUAKE {feedCounts.earthquakes} </span>}
+            {feedCounts.fires > 0 && <span style={{ color: 'var(--accent-amber)' }}>▲ FIRE {feedCounts.fires}</span>}
+          </div>
+        </div>
+        <span className="hud-bracket">]</span>
+      </div>
+
+      {/* Bottom-left corner */}
+      <div className="hud-corner hud-bottom-left">
+        <span className="hud-bracket">[</span>
+        <div className="hud-content">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="hud-rec-dot" style={{ opacity: recBlink ? 1 : 0.3 }}>●</span>
+            <span className="hud-rec">REC</span>
+          </div>
+          <div style={{ fontSize: 10, marginTop: 2, opacity: 0.6 }}>
+            HDG {viewState.heading.toFixed(1)}°
+          </div>
         </div>
       </div>
 
-      {/* Feed counts */}
-      <div className="hud-top-right">
-        <div>AIR: {feedCounts.aircraft.toLocaleString()}</div>
-        <div>SAT: {feedCounts.satellites.toLocaleString()}</div>
-        <div>SHIP: {feedCounts.ships.toLocaleString()}</div>
-        <div>CAM: {feedCounts.cameras.toLocaleString()}</div>
-        <div style={{ color: feedCounts.conflicts > 0 ? 'var(--accent-red)' : 'var(--accent-green)' }}>
-          CONFLICT: {feedCounts.conflicts.toLocaleString()}
+      {/* Bottom-right corner */}
+      <div className="hud-corner hud-bottom-right">
+        <div className="hud-content" style={{ textAlign: 'right' }}>
+          <div>{utc}</div>
+          <div style={{ fontSize: 10, opacity: 0.5 }}>{time.toLocaleTimeString()} LOCAL</div>
         </div>
-        <div style={{ color: feedCounts.earthquakes > 0 ? 'var(--accent-amber)' : 'var(--accent-green)' }}>
-          QUAKE: {feedCounts.earthquakes.toLocaleString()}
-        </div>
-        <div style={{ color: feedCounts.fires > 0 ? 'var(--accent-amber)' : 'var(--accent-green)' }}>
-          FIRE: {feedCounts.fires.toLocaleString()}
-        </div>
-        <div style={{ color: feedCounts.eonet > 0 ? 'var(--accent-amber)' : 'var(--accent-green)' }}>
-          EONET: {feedCounts.eonet.toLocaleString()}
-        </div>
-        <div style={{ color: feedCounts.gdacs > 0 ? 'var(--accent-red)' : 'var(--accent-green)' }}>
-          GDACS: {feedCounts.gdacs.toLocaleString()}
-        </div>
-        <div style={{ color: feedCounts.nws > 0 ? 'var(--accent-amber)' : 'var(--accent-green)' }}>
-          NWS: {feedCounts.nws.toLocaleString()}
-        </div>
+        <span className="hud-bracket">]</span>
+      </div>
+
+      {/* Top bar */}
+      <div className="hud-top-bar">
+        <span style={{ letterSpacing: 2, fontSize: 9 }}>SYS: NOMINAL</span>
+        <span style={{ letterSpacing: 2, fontSize: 9 }}>FEEDS: {totalEntities} ACTIVE</span>
+        <span style={{ letterSpacing: 2, fontSize: 9 }}>MODE: {shaderMode.toUpperCase()}</span>
+      </div>
+
+      {/* Bottom bar */}
+      <div className="hud-bottom-bar">
+        <span style={{ letterSpacing: 3, fontSize: 10 }}>GOD'S EYE VIEW — GLOBAL INTELLIGENCE MONITORING SYSTEM</span>
+      </div>
+
+      {/* Left edge */}
+      <div className="hud-edge hud-left-edge">
+        <span>TRACKING</span>
+        <span>ACTIVE</span>
+      </div>
+
+      {/* Right edge */}
+      <div className="hud-edge hud-right-edge">
+        <span>SECURE</span>
+        <span>CHANNEL</span>
       </div>
     </div>
   );

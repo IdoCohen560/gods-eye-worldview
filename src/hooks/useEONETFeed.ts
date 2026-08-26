@@ -61,7 +61,7 @@ export function useEONETFeed({ viewer, active, onCountUpdate }: UseEONETFeedOpti
             },
             label: {
               text: ev.title,
-              font: '10px Share Tech Mono',
+              font: '10px JetBrains Mono',
               fillColor: color,
               pixelOffset: new Cesium.Cartesian2(12, 0),
               distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 5_000_000),

@@ -110,26 +110,28 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
   useEffect(() => {
     if (!containerRef.current || viewerRef.current) return;
 
-    const baseImagery = CESIUM_ION_TOKEN
-      ? undefined
-      : new Cesium.OpenStreetMapImageryProvider({ url: 'https://tile.openstreetmap.org/' });
-
     const v = new Cesium.Viewer(containerRef.current, {
       timeline: false, animation: false, baseLayerPicker: false,
       geocoder: false, homeButton: false, navigationHelpButton: false,
       sceneModePicker: false, fullscreenButton: false,
       selectionIndicator: true, infoBox: false,
-      requestRenderMode: true, maximumRenderTimeChange: Infinity,
-      ...(baseImagery ? { baseLayer: Cesium.ImageryLayer.fromProviderAsync(Promise.resolve(baseImagery), {}) } : {}),
+      ...(CESIUM_ION_TOKEN ? {} : {
+        baseLayer: new Cesium.ImageryLayer(
+          new Cesium.OpenStreetMapImageryProvider({ url: 'https://tile.openstreetmap.org/' })
+        ),
+      }),
     });
 
+    v.clock.shouldAnimate = false;
+    v.scene.globe.enableLighting = true;
+
+    // Terrain (async, non-blocking)
     Cesium.CesiumTerrainProvider.fromIonAssetId(1).then(terrain => {
       if (v.isDestroyed()) return;
       v.scene.terrainProvider = terrain;
-    }).catch(e => console.warn('Cesium Ion terrain unavailable:', e));
+    }).catch(() => {});
 
-    v.clock.shouldAnimate = false;
-
+    // Google 3D Tiles (async, non-blocking)
     if (GOOGLE_MAPS_API_KEY) {
       Cesium.Cesium3DTileset.fromUrl(
         `https://tile.googleapis.com/v1/3dtiles/root.json?key=${GOOGLE_MAPS_API_KEY}`,
@@ -138,18 +140,14 @@ export default function CesiumViewer({ onReady, shaderMode, activeLayers, onView
         if (v.isDestroyed()) return;
         v.scene.primitives.add(tileset);
         reportFeedStatus('google3d', 'online');
-      }).catch(e => {
-        console.error('Google 3D Tiles failed:', e);
-        reportToast('Google 3D Tiles failed to load', 'warning', 'google3d');
-      });
+      }).catch(() => {});
     }
 
-    v.scene.globe.enableLighting = true;
-
+    // OSM Buildings (async, non-blocking)
     Cesium.createOsmBuildingsAsync({ showOutline: false }).then(buildings => {
       if (v.isDestroyed()) return;
       v.scene.primitives.add(buildings);
-    }).catch(e => console.warn('OSM Buildings unavailable:', e));
+    }).catch(() => {});
 
     v.camera.changed.addEventListener(() => {
       const c = v.camera.positionCartographic;

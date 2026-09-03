@@ -1,0 +1,12 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Keep the public Netlify URL while sending all same-origin API calls to the
+# persistent Railway Node service. The frontend intentionally calls /api/* so
+# browser credentials and CORS remain local to the public site.
+[[redirects]]
+  from = "/api/*"
+  to = "https://gods-eye-worldview-production.up.railway.app/api/:splat"
+  status = 200
+  force = true

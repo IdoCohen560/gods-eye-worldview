@@ -5,6 +5,10 @@ FROM node:26-bookworm-slim
 
 WORKDIR /app
 
+# Puppeteer is used by the repository's local QA tooling, not by the running
+# globe. Avoid downloading Chromium into the production image.
+ENV PUPPETEER_SKIP_DOWNLOAD=1
+
 COPY package.json package-lock.json ./
 RUN npm ci
 
